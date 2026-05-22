@@ -130,59 +130,62 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class Partner
+{
+    /** @return list<array<string,mixed>> */
+    public static function all(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM partners ORDER BY sort_order, name');
+        return $stmt->fetchAll() ?: [];
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM partners WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @param array<string,mixed> $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO partners (name, logo, url, sort_order)
+             VALUES (:name, :logo, :url, :sort_order)'
+        );
+        $stmt->execute([
+            ':name'       => $data['name'],
+            ':logo'       => $data['logo'] ?? null,
+            ':url'        => $data['url']  ?? null,
+            ':sort_order' => (int) ($data['sort_order'] ?? 0),
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    /** @param array<string,mixed> $data */
+    public static function update(int $id, array $data): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE partners SET name=:name, logo=:logo, url=:url, sort_order=:sort_order WHERE id=:id'
+        );
+        $stmt->execute([
+            ':name'       => $data['name'],
+            ':logo'       => $data['logo'] ?? null,
+            ':url'        => $data['url']  ?? null,
+            ':sort_order' => (int) ($data['sort_order'] ?? 0),
+            ':id'         => $id,
+        ]);
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM partners WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

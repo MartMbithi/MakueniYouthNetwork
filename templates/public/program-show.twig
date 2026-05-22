@@ -1,0 +1,51 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ program.title }}{% endblock %}
+{% block meta_description %}{{ program.summary|default(program.title) }}{% endblock %}
+{% block og_image %}{% if program.cover_image %}<meta property="og:image" content="{{ program.cover_image }}">{% endif %}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">
+      <a href="/programs" style="color:var(--muted)">Programs</a>
+      {% if parent %} &nbsp;·&nbsp; <a href="/programs/{{ parent.slug }}" style="color:var(--muted)">{{ parent.title }}</a>{% endif %}
+    </span>
+    <h1>{{ program.title }}</h1>
+    {% if program.summary %}<p>{{ program.summary }}</p>{% endif %}
+  </div>
+</section>
+
+{% if program.cover_image %}
+<div class="wrap" style="margin-top:-24px">
+  <img src="{{ program.cover_image }}" alt="{{ program.title }}" style="border-radius:24px;max-height:520px;width:100%;object-fit:cover" loading="lazy">
+</div>
+{% endif %}
+
+<section class="pad">
+  <div class="wrap">
+    <div class="prose">{{ program.body|raw }}</div>
+
+    {% if children|length > 0 %}
+    <div style="margin-top:64px">
+      <span class="eyebrow">Inside this program</span>
+      <h2 style="font-size:1.8rem;margin:12px 0 28px">Sub-programs</h2>
+      <div class="prog-grid">
+        {% for c in children %}
+          <article class="prog reveal">
+            <div class="prog-img"><span class="prog-num">{{ '%02d'|format(loop.index) }}</span>
+              {% if c.cover_image %}<img src="{{ c.cover_image }}" alt="{{ c.title }}" loading="lazy">{% endif %}
+            </div>
+            <div class="prog-body">
+              <h3>{{ c.title }}</h3>
+              <p>{{ c.summary }}</p>
+              <a href="/programs/{{ c.slug }}" class="prog-link">View details <span>→</span></a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

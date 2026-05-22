@@ -130,59 +130,57 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class Setting
+{
+    /** @return array<string,string> */
+    public static function all(): array
+    {
+        $stmt = Database::connection()->query('SELECT setting_key, setting_value FROM settings');
+        $out = [];
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            $out[(string) $row['setting_key']] = (string) ($row['setting_value'] ?? '');
+        }
+        return $out;
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public static function get(string $key, ?string $default = null): ?string
+    {
+        $stmt = Database::connection()->prepare('SELECT setting_value FROM settings WHERE setting_key = :k');
+        $stmt->execute([':k' => $key]);
+        $val = $stmt->fetchColumn();
+        return $val === false ? $default : (string) $val;
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    public static function set(string $key, string $value): void
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO settings (setting_key, setting_value) VALUES (:k, :v)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
+        );
+        $stmt->execute([':k' => $key, ':v' => $value]);
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
-
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @param array<string,string> $pairs */
+    public static function setMany(array $pairs): void
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare(
+                'INSERT INTO settings (setting_key, setting_value) VALUES (:k, :v)
+                 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)'
+            );
+            foreach ($pairs as $k => $v) {
+                $stmt->execute([':k' => $k, ':v' => $v]);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

@@ -130,59 +130,54 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Controllers;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
+use App\Models\Event;
+use App\Models\Page;
+use App\Models\Post;
+use App\Models\Program;
+use App\Models\Setting;
 
-$rootDir = dirname(__DIR__);
+final class SitemapController
+{
+    public function index(): string
+    {
+        if (!headers_sent()) {
+            header('Content-Type: application/xml; charset=utf-8');
+        }
 
-require $rootDir . '/vendor/autoload.php';
+        $base = rtrim((string) Setting::get('site_url', $_ENV['APP_URL'] ?? 'http://localhost'), '/');
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+        $urls = [];
+        $urls[] = ['loc' => $base . '/', 'lastmod' => date('Y-m-d')];
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+        foreach (Program::all('published') as $p) {
+            $urls[] = ['loc' => $base . '/programs/' . $p['slug'], 'lastmod' => date('Y-m-d')];
+        }
+        foreach (Post::published(500) as $p) {
+            $urls[] = [
+                'loc'     => $base . '/impact/' . $p['slug'],
+                'lastmod' => substr((string) ($p['published_at'] ?? $p['created_at']), 0, 10),
+            ];
+        }
+        foreach (Event::upcoming(200) as $e) {
+            $urls[] = ['loc' => $base . '/events/' . $e['slug'], 'lastmod' => date('Y-m-d')];
+        }
+        foreach (Event::past(500) as $e) {
+            $urls[] = ['loc' => $base . '/events/' . $e['slug'], 'lastmod' => substr((string) $e['starts_at'], 0, 10)];
+        }
+        foreach (Page::all('published') as $p) {
+            $urls[] = ['loc' => $base . '/' . $p['slug'], 'lastmod' => substr((string) $p['updated_at'], 0, 10)];
+        }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        foreach ($urls as $u) {
+            $xml .= '  <url><loc>' . htmlspecialchars($u['loc'], ENT_XML1)
+                  . '</loc><lastmod>' . $u['lastmod'] . '</lastmod></url>' . "\n";
+        }
+        $xml .= '</urlset>' . "\n";
+        return $xml;
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

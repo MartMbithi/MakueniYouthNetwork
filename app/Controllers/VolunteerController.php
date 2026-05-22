@@ -130,59 +130,108 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers;
+
+use App\Core\Csrf;
+use App\Core\RateLimit;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
+use App\Models\Setting;
+use App\Models\Volunteer;
 use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class VolunteerController
+{
+    public function form(): string
+    {
+        $data = [
+            'title'  => 'Volunteer with us',
+            'old'    => $_SESSION['_old_volunteer'] ?? [],
+            'errors' => $_SESSION['_errors_volunteer'] ?? [],
+        ];
+        unset($_SESSION['_old_volunteer'], $_SESSION['_errors_volunteer']);
+        return View::render('public/volunteer.twig', $data);
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function submit(): string
+    {
+        Csrf::requireValid();
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+        $ip = Request::ip();
+        if (!RateLimit::attempt('volunteer:' . $ip, 3, 600)) {
+            View::flash('Too many submissions from your network. Please try again in a few minutes.', 'error');
+            Response::redirect('/volunteer');
+        }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+        $fullName = trim((string) Request::input('full_name', ''));
+        $email    = trim((string) Request::input('email', ''));
+        $phone    = trim((string) Request::input('phone', ''));
+        $interest = trim((string) Request::input('interest', ''));
+        $message  = trim((string) Request::input('message', ''));
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+        $errors = $this->validate($fullName, $email, $phone);
+        if ($errors !== []) {
+            $_SESSION['_errors_volunteer'] = $errors;
+            $_SESSION['_old_volunteer']    = compact('fullName', 'email', 'phone', 'interest', 'message');
+            Response::redirect('/volunteer');
+        }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
+        $id = Volunteer::create([
+            'full_name' => $fullName,
+            'email'     => $email,
+            'phone'     => $phone   !== '' ? $phone : null,
+            'interest'  => $interest!== '' ? $interest : null,
+            'message'   => $message !== '' ? $message : null,
+        ]);
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+        $notifyTo = Setting::get('email', 'info@makueniyouth.org') ?? 'info@makueniyouth.org';
+        Mailer::send(
+            $notifyTo,
+            'New volunteer application: ' . $fullName,
+            $this->notificationHtml($id, $fullName, $email, $phone, $interest, $message),
+            $email
+        );
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        View::flash('Thanks for stepping up — we have received your application and will be in touch.', 'success');
+        Response::redirect('/volunteer');
+        return '';
+    }
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @return array<string,array<int,string>> */
+    private function validate(string $fullName, string $email, string $phone): array
+    {
+        $errors = [];
+        if (strlen($fullName) < 2) {
+            $errors['full_name'][] = 'Please share your full name.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'][] = 'A valid email is needed so we can reach you.';
+        }
+        if ($phone !== '' && !preg_match('/^[+0-9 ()\-]{7,20}$/', $phone)) {
+            $errors['phone'][] = 'Phone number looks off — use digits, spaces and + only.';
+        }
+        return $errors;
+    }
+
+    private function notificationHtml(int $id, string $name, string $email, string $phone, string $interest, string $message): string
+    {
+        $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+        $rows = [
+            'Name'     => $name,
+            'Email'    => $email,
+            'Phone'    => $phone !== '' ? $phone : '—',
+            'Interest' => $interest !== '' ? $interest : '—',
+        ];
+        $out = '<h2>New volunteer #' . $id . '</h2><table style="border-collapse:collapse">';
+        foreach ($rows as $k => $v) {
+            $out .= '<tr><td style="padding:4px 12px;font-weight:bold">' . $h($k) . '</td>'
+                  . '<td style="padding:4px 12px">' . $h($v) . '</td></tr>';
+        }
+        $out .= '</table>';
+        if ($message !== '') {
+            $out .= '<h3 style="margin-top:18px">Message</h3><p>' . nl2br($h($message)) . '</p>';
+        }
+        return $out;
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

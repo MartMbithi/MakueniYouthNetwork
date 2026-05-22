@@ -1,0 +1,59 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Contact us{% endblock %}
+{% block meta_description %}Reach Makueni Youth Network at Famo House, Wote, Makueni County. Phone, email and contact form.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Get in touch</span>
+    <h1>We would love to hear from you.</h1>
+    <p>Drop us a message and someone from the team will get back within two working days.</p>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap" style="display:grid;grid-template-columns:1.1fr .9fr;gap:60px">
+    <form class="form" method="post" action="/contact" novalidate>
+      {{ csrf_field()|raw }}
+
+      {% if errors|length > 0 %}
+        <div class="errors">
+          <strong>Please fix the issues below:</strong>
+          <ul>
+            {% for field, msgs in errors %}{% for m in msgs %}<li>{{ m }}</li>{% endfor %}{% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="field">
+        <label for="name">Your name</label>
+        <input type="text" id="name" name="name" value="{{ old.name|default('') }}" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ old.email|default('') }}" required>
+      </div>
+      <div class="field">
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" name="subject" value="{{ old.subject|default('') }}">
+      </div>
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" required>{{ old.body|default('') }}</textarea>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-green">Send message</button>
+      </div>
+    </form>
+
+    <aside>
+      <h3 style="font-family:'Fraunces';font-size:1.5rem;margin-bottom:16px">Visit us</h3>
+      <p style="color:var(--muted);margin-bottom:14px">{{ site.address }}</p>
+      <p style="color:var(--muted);margin-bottom:14px">{{ site.po_box }}</p>
+      <p style="margin-bottom:8px"><strong>Phone:</strong> <a href="tel:{{ site.phone|replace({' ': ''}) }}">{{ site.phone }}</a></p>
+      <p><strong>Email:</strong> <a href="mailto:{{ site.email }}">{{ site.email }}</a></p>
+    </aside>
+  </div>
+</section>
+{% endblock %}

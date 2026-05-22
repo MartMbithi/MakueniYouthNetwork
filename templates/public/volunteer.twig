@@ -1,0 +1,70 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Volunteer with us{% endblock %}
+{% block meta_description %}Join the Makueni Youth Network as a volunteer — mentor, assessor, organiser or advocate.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Get involved</span>
+    <h1>Lend your time. Multiply your impact.</h1>
+    <p>Whether you can assess literacy levels for a weekend or mentor someone for six months, there is a role with your name on it.</p>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap" style="display:grid;grid-template-columns:1.1fr .9fr;gap:60px">
+    <form class="form" method="post" action="/volunteer" novalidate>
+      {{ csrf_field()|raw }}
+
+      {% if errors|length > 0 %}
+        <div class="errors">
+          <strong>Please fix the issues below:</strong>
+          <ul>
+            {% for field, msgs in errors %}{% for m in msgs %}<li>{{ m }}</li>{% endfor %}{% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input type="text" id="full_name" name="full_name" value="{{ old.fullName|default('') }}" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ old.email|default('') }}" required>
+      </div>
+      <div class="field">
+        <label for="phone">Phone (optional)</label>
+        <input type="tel" id="phone" name="phone" value="{{ old.phone|default('') }}">
+      </div>
+      <div class="field">
+        <label for="interest">Where would you like to help?</label>
+        <select id="interest" name="interest">
+          <option value="">— pick one —</option>
+          {% for opt in ['Advocacy & Civic Engagement','Leadership & Talent','Education & Capacity','Youth Mentorship','Event organising','Communications','Other'] %}
+            <option value="{{ opt }}" {{ old.interest|default('') == opt ? 'selected' : '' }}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="message">Anything else?</label>
+        <textarea id="message" name="message">{{ old.message|default('') }}</textarea>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-green">Submit application</button>
+      </div>
+    </form>
+
+    <aside>
+      <h3 style="font-family:'Fraunces';font-size:1.5rem;margin-bottom:16px">What happens next</h3>
+      <ol style="color:var(--muted);padding-left:1.2em;line-height:1.7">
+        <li>We review your application within five working days.</li>
+        <li>If there is a match, we will email or call you to confirm details.</li>
+        <li>You are invited to the next orientation in Wote.</li>
+      </ol>
+      <p style="margin-top:20px;color:var(--muted)">Questions? Email <a href="mailto:{{ site.email }}">{{ site.email }}</a> or call <a href="tel:{{ site.phone|replace({' ': ''}) }}">{{ site.phone }}</a>.</p>
+    </aside>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ post.title }}{% endblock %}
+{% block meta_description %}{{ post.excerpt|default(post.title) }}{% endblock %}
+{% block og_image %}{% if post.cover_image %}<meta property="og:image" content="{{ post.cover_image }}">{% endif %}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">{{ post.category_name|default('News') }}</span>
+    <h1>{{ post.title }}</h1>
+    <p style="color:var(--muted);font-size:.94rem">
+      Published {{ post.published_at|date('F j, Y') }}{% if post.author_name %} · By {{ post.author_name }}{% endif %}
+    </p>
+  </div>
+</section>
+
+{% if post.cover_image %}
+<div class="wrap" style="margin-top:-24px">
+  <img src="{{ post.cover_image }}" alt="{{ post.title }}" style="border-radius:24px;max-height:520px;width:100%;object-fit:cover" loading="lazy">
+</div>
+{% endif %}
+
+<section class="pad">
+  <div class="wrap">
+    <div class="prose">{{ post.body|raw }}</div>
+
+    <p style="text-align:center;margin-top:64px">
+      <a href="/impact" class="btn btn-ghost">← All stories</a>
+    </p>
+  </div>
+</section>
+{% endblock %}

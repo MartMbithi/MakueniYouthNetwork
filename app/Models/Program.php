@@ -130,59 +130,135 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class Program
+{
+    /** @return list<array<string,mixed>> */
+    public static function all(?string $status = 'published'): array
+    {
+        if ($status !== null) {
+            $stmt = Database::connection()->prepare(
+                'SELECT * FROM programs WHERE status = :s ORDER BY sort_order, title'
+            );
+            $stmt->execute([':s' => $status]);
+        } else {
+            $stmt = Database::connection()->query('SELECT * FROM programs ORDER BY sort_order, title');
+        }
+        return $stmt->fetchAll() ?: [];
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM programs WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @return array<string,mixed>|null */
+    public static function findBySlug(string $slug, bool $publishedOnly = true): ?array
+    {
+        $sql = 'SELECT * FROM programs WHERE slug = :slug';
+        if ($publishedOnly) {
+            $sql .= " AND status = 'published'";
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    /** @return list<array<string,mixed>> */
+    public static function children(int $parentId, bool $publishedOnly = true): array
+    {
+        $sql = 'SELECT * FROM programs WHERE parent_id = :pid';
+        if ($publishedOnly) {
+            $sql .= " AND status = 'published'";
+        }
+        $sql .= ' ORDER BY sort_order, title';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([':pid' => $parentId]);
+        return $stmt->fetchAll() ?: [];
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    /**
+     * Top-level programs with their children attached under a `children` key.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function tree(bool $publishedOnly = true): array
+    {
+        $status = $publishedOnly ? "status = 'published'" : '1=1';
+        $pdo = Database::connection();
+        $parents = $pdo->query(
+            "SELECT * FROM programs WHERE parent_id IS NULL AND {$status} ORDER BY sort_order, title"
+        )->fetchAll() ?: [];
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
+        $children = $pdo->query(
+            "SELECT * FROM programs WHERE parent_id IS NOT NULL AND {$status} ORDER BY sort_order, title"
+        )->fetchAll() ?: [];
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+        $byParent = [];
+        foreach ($children as $c) {
+            $byParent[(int) $c['parent_id']][] = $c;
+        }
+        foreach ($parents as &$p) {
+            $p['children'] = $byParent[(int) $p['id']] ?? [];
+        }
+        unset($p);
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        return $parents;
+    }
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @param array<string,mixed> $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO programs (parent_id, slug, title, summary, body, cover_image, sort_order, status)
+             VALUES (:parent_id, :slug, :title, :summary, :body, :cover_image, :sort_order, :status)'
+        );
+        $stmt->execute([
+            ':parent_id'   => $data['parent_id']   ?? null,
+            ':slug'        => $data['slug'],
+            ':title'       => $data['title'],
+            ':summary'     => $data['summary']     ?? null,
+            ':body'        => $data['body']        ?? null,
+            ':cover_image' => $data['cover_image'] ?? null,
+            ':sort_order'  => (int) ($data['sort_order'] ?? 0),
+            ':status'      => $data['status']      ?? 'published',
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
+
+    /** @param array<string,mixed> $data */
+    public static function update(int $id, array $data): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE programs SET parent_id=:parent_id, slug=:slug, title=:title,
+             summary=:summary, body=:body, cover_image=:cover_image,
+             sort_order=:sort_order, status=:status WHERE id=:id'
+        );
+        $stmt->execute([
+            ':parent_id'   => $data['parent_id']   ?? null,
+            ':slug'        => $data['slug'],
+            ':title'       => $data['title'],
+            ':summary'     => $data['summary']     ?? null,
+            ':body'        => $data['body']        ?? null,
+            ':cover_image' => $data['cover_image'] ?? null,
+            ':sort_order'  => (int) ($data['sort_order'] ?? 0),
+            ':status'      => $data['status']      ?? 'published',
+            ':id'          => $id,
+        ]);
+    }
+
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM programs WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

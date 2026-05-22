@@ -130,8 +130,31 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\View;
-
 /** @var \App\Core\Router $router */
 
-$router->get('/', static fn (): string => View::render('public/home.twig'));
+$router->get('/',                  'HomeController@index');
+
+$router->get('/programs',          'ProgramController@index');
+$router->get('/programs/{slug}',   'ProgramController@show');
+
+$router->get('/impact',            'PostController@index');
+$router->get('/impact/{slug}',     'PostController@show');
+
+$router->get('/events',            'EventController@index');
+$router->get('/events/{slug}',     'EventController@show');
+
+$router->get('/donate',            'DonationController@form');
+$router->post('/donate',           'DonationController@initiate');
+$router->get('/donate/callback',   'DonationController@callback');
+$router->post('/donate/webhook',   'DonationController@webhook');
+
+$router->get('/volunteer',         'VolunteerController@form');
+$router->post('/volunteer',        'VolunteerController@submit');
+
+$router->get('/contact',           'ContactController@form');
+$router->post('/contact',          'ContactController@submit');
+
+$router->get('/sitemap.xml',       'SitemapController@index');
+
+// IMPORTANT: must be registered LAST so explicit routes win.
+$router->get('/{slug}',            'PageController@show');

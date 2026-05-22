@@ -1,0 +1,31 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ event.title }}{% endblock %}
+{% block meta_description %}{{ event.description|striptags|slice(0,160)|default(event.title) }}{% endblock %}
+{% block og_image %}{% if event.cover_image %}<meta property="og:image" content="{{ event.cover_image }}">{% endif %}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Event · {{ event.starts_at|date('l, F j, Y') }}</span>
+    <h1>{{ event.title }}</h1>
+    {% if event.venue %}<p>{{ event.venue }}</p>{% endif %}
+  </div>
+</section>
+
+{% if event.cover_image %}
+<div class="wrap" style="margin-top:-24px">
+  <img src="{{ event.cover_image }}" alt="{{ event.title }}" style="border-radius:24px;max-height:520px;width:100%;object-fit:cover" loading="lazy">
+</div>
+{% endif %}
+
+<section class="pad">
+  <div class="wrap">
+    <div class="prose">{{ event.description|raw }}</div>
+
+    <p style="text-align:center;margin-top:48px">
+      <a href="/events" class="btn btn-ghost">← All events</a>
+    </p>
+  </div>
+</section>
+{% endblock %}

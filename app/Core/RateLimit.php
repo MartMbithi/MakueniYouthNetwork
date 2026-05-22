@@ -130,59 +130,61 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
+namespace App\Core;
 
-$rootDir = dirname(__DIR__);
+/**
+ * Session-backed sliding-window rate limiter.
+ *
+ * Good enough for public-form abuse mitigation behind a single web node
+ * (login, contact, volunteer). Not a substitute for fail2ban / WAF.
+ */
+final class RateLimit
+{
+    /**
+     * @return bool true if the action is allowed, false if the key is over its limit
+     */
+    public static function attempt(string $key, int $max, int $perSeconds): bool
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return true;
+        }
+        $bucketKey = '_rl_' . $key;
+        $now = time();
+        $bucket = $_SESSION[$bucketKey] ?? [];
+        if (!is_array($bucket)) {
+            $bucket = [];
+        }
+        $bucket = array_values(array_filter($bucket, static fn (int $t): bool => ($now - $t) < $perSeconds));
+        if (count($bucket) >= $max) {
+            $_SESSION[$bucketKey] = $bucket;
+            return false;
+        }
+        $bucket[] = $now;
+        $_SESSION[$bucketKey] = $bucket;
+        return true;
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public static function reset(string $key): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+        unset($_SESSION['_rl_' . $key]);
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
-
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
-
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /**
+     * Returns the number of seconds until the bucket has room again, or 0 if
+     * the action is currently allowed.
+     */
+    public static function retryAfter(string $key, int $perSeconds): int
+    {
+        $bucketKey = '_rl_' . $key;
+        $bucket = $_SESSION[$bucketKey] ?? [];
+        if (!is_array($bucket) || $bucket === []) {
+            return 0;
+        }
+        $oldest = min(array_map('intval', $bucket));
+        $waitUntil = $oldest + $perSeconds;
+        return max(0, $waitUntil - time());
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

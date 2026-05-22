@@ -130,59 +130,38 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
+namespace App\Controllers;
+
 use App\Core\View;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class DonationController
+{
+    public function form(): string
+    {
+        return View::render('public/donate.twig', [
+            'title' => 'Donate',
+        ]);
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function initiate(): string
+    {
+        return View::render('public/donate.twig', [
+            'title' => 'Donate',
+            'pending_message' => 'Paystack integration is wired in milestone M5.',
+        ]);
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    public function callback(): string
+    {
+        return View::render('public/donate-thanks.twig', [
+            'title'  => 'Thank you',
+            'status' => 'pending',
+        ]);
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
-
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public function webhook(): string
+    {
+        http_response_code(200);
+        return '';
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

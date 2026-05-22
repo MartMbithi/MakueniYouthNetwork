@@ -130,59 +130,70 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
+namespace App\Services;
 
-$rootDir = dirname(__DIR__);
+use PHPMailer\PHPMailer\Exception as MailerException;
+use PHPMailer\PHPMailer\PHPMailer;
 
-require $rootDir . '/vendor/autoload.php';
+final class Mailer
+{
+    /** @var array{host:?string,port:int,user:?string,pass:?string,from:string} */
+    private static array $config = [
+        'host' => null, 'port' => 587, 'user' => null, 'pass' => null,
+        'from' => 'no-reply@makueniyouth.org',
+    ];
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @param array{host:?string,port:int,user:?string,pass:?string,from:string} $config */
+    public static function configure(array $config): void
+    {
+        self::$config = $config + self::$config;
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    /**
+     * Send a transactional email. Returns true on success; logs and returns
+     * false on failure so callers can decide what to do (we never want a
+     * mailer outage to break a public form submission).
+     */
+    public static function send(string $to, string $subject, string $htmlBody, ?string $replyTo = null): bool
+    {
+        $cfg = self::$config;
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+        if (empty($cfg['host']) || empty($cfg['user'])) {
+            error_log('[Mailer] SMTP not configured; skipping send to ' . $to);
+            return false;
+        }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host       = $cfg['host'];
+            $mail->Port       = $cfg['port'];
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $cfg['user'];
+            $mail->Password   = (string) $cfg['pass'];
+            $mail->SMTPSecure = $cfg['port'] === 465
+                ? PHPMailer::ENCRYPTION_SMTPS
+                : PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->CharSet    = 'UTF-8';
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+            $mail->setFrom($cfg['from'], 'Makueni Youth Network');
+            $mail->addAddress($to);
+            if ($replyTo !== null && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+                $mail->addReplyTo($replyTo);
+            }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            $mail->Subject = $subject;
+            $mail->isHTML(true);
+            $mail->Body    = $htmlBody;
+            $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $htmlBody));
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+            return $mail->send();
+        } catch (MailerException $e) {
+            error_log('[Mailer] send failed: ' . $e->getMessage());
+            return false;
+        } catch (\Throwable $e) {
+            error_log('[Mailer] unexpected: ' . $e->getMessage());
+            return false;
+        }
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

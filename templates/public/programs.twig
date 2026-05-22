@@ -1,0 +1,44 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Our Programs{% endblock %}
+{% block meta_description %}Explore Makueni Youth Network's three flagship programs and their sub-initiatives.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Our Programs</span>
+    <h1>Three ways we turn youth potential into power.</h1>
+    <p>Each program confronts a systemic barrier — and replaces it with skills, voice, and opportunity.</p>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap">
+    <div class="prog-grid">
+      {% for prog in programs %}
+        <article class="prog reveal">
+          <div class="prog-img">
+            <span class="prog-num">{{ '%02d'|format(loop.index) }}</span>
+            {% if prog.cover_image %}
+              <img src="{{ prog.cover_image }}" alt="{{ prog.title }}" loading="lazy">
+            {% endif %}
+          </div>
+          <div class="prog-body">
+            <h3>{{ prog.title }}</h3>
+            <p>{{ prog.summary }}</p>
+            {% if prog.children is defined and prog.children|length > 0 %}
+              <p style="margin-top:8px;font-size:.84rem;color:var(--muted)">
+                Sub-programs:
+                {% for c in prog.children %}
+                  <a href="/programs/{{ c.slug }}" style="color:var(--green-2);font-weight:600">{{ c.title }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </p>
+            {% endif %}
+            <a href="/programs/{{ prog.slug }}" class="prog-link">Explore program <span>→</span></a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

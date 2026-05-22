@@ -130,59 +130,87 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
+use PDO;
 
-$rootDir = dirname(__DIR__);
+final class Page
+{
+    /** @return array<string,mixed>|null */
+    public static function findBySlug(string $slug, bool $publishedOnly = true): ?array
+    {
+        $sql = 'SELECT * FROM pages WHERE slug = :slug';
+        if ($publishedOnly) {
+            $sql .= " AND status = 'published'";
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM pages WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @return list<array<string,mixed>> */
+    public static function all(?string $status = null): array
+    {
+        if ($status !== null) {
+            $stmt = Database::connection()->prepare('SELECT * FROM pages WHERE status = :s ORDER BY title');
+            $stmt->execute([':s' => $status]);
+        } else {
+            $stmt = Database::connection()->query('SELECT * FROM pages ORDER BY title');
+        }
+        return $stmt->fetchAll() ?: [];
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    /** @param array<string,mixed> $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO pages (slug, title, body, meta_desc, hero_image, status)
+             VALUES (:slug, :title, :body, :meta_desc, :hero_image, :status)'
+        );
+        $stmt->execute([
+            ':slug'       => $data['slug'],
+            ':title'      => $data['title'],
+            ':body'       => $data['body']       ?? null,
+            ':meta_desc'  => $data['meta_desc']  ?? null,
+            ':hero_image' => $data['hero_image'] ?? null,
+            ':status'     => $data['status']     ?? 'draft',
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    /** @param array<string,mixed> $data */
+    public static function update(int $id, array $data): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE pages SET slug=:slug, title=:title, body=:body, meta_desc=:meta_desc,
+             hero_image=:hero_image, status=:status WHERE id=:id'
+        );
+        $stmt->execute([
+            ':slug'       => $data['slug'],
+            ':title'      => $data['title'],
+            ':body'       => $data['body']       ?? null,
+            ':meta_desc'  => $data['meta_desc']  ?? null,
+            ':hero_image' => $data['hero_image'] ?? null,
+            ':status'     => $data['status']     ?? 'draft',
+            ':id'         => $id,
+        ]);
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM pages WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

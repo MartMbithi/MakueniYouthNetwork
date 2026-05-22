@@ -130,59 +130,64 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class Message
+{
+    /** @param array<string,mixed> $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO messages (name, email, subject, body)
+             VALUES (:name, :email, :subject, :body)'
+        );
+        $stmt->execute([
+            ':name'    => $data['name'],
+            ':email'   => $data['email'],
+            ':subject' => $data['subject'] ?? null,
+            ':body'    => $data['body'],
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    /** @return list<array<string,mixed>> */
+    public static function all(int $limit = 500): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM messages ORDER BY created_at DESC LIMIT :lim'
+        );
+        $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM messages WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    public static function markRead(int $id, bool $read = true): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE messages SET is_read = :r WHERE id = :id');
+        $stmt->execute([':r' => $read ? 1 : 0, ':id' => $id]);
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    public static function unreadCount(): int
+    {
+        return (int) Database::connection()
+            ->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')
+            ->fetchColumn();
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM messages WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

@@ -1,0 +1,55 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Our Impact{% endblock %}
+{% block meta_description %}Stories, news and updates from Makueni Youth Network across governance, advocacy and education.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Our Impact</span>
+    <h1>News, stories &amp; the change we are making.</h1>
+    <p>{{ total }} published {{ total == 1 ? 'story' : 'stories' }}. Page {{ page }} of {{ pages }}.</p>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap">
+    {% if posts|length == 0 %}
+      <p style="text-align:center;color:var(--muted)">No stories yet — check back soon.</p>
+    {% else %}
+      <div class="news-grid" style="grid-template-columns:repeat(3,1fr)">
+        {% for post in posts %}
+          <article class="news reveal">
+            <div class="news-img">
+              <span class="news-date"><b>{{ post.published_at|date('d') }}</b><small>{{ post.published_at|date('M') }}</small></span>
+              {% if post.cover_image %}
+                <img src="{{ post.cover_image }}" alt="{{ post.title }}" loading="lazy">
+              {% endif %}
+            </div>
+            <div class="news-body">
+              <span class="news-cat">{{ post.category_name|default('News') }}</span>
+              <h3>{{ post.title }}</h3>
+              {% if post.excerpt %}<p>{{ post.excerpt }}</p>{% endif %}
+              <a href="/impact/{{ post.slug }}" class="news-more">Read story →</a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if pages > 1 %}
+      <nav class="pager">
+        {% if page > 1 %}<a href="?page={{ page - 1 }}">← Prev</a>{% endif %}
+        {% for n in 1..pages %}
+          {% if n == page %}
+            <span class="is-current">{{ n }}</span>
+          {% else %}
+            <a href="?page={{ n }}">{{ n }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page < pages %}<a href="?page={{ page + 1 }}">Next →</a>{% endif %}
+      </nav>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

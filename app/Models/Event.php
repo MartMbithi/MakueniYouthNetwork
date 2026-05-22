@@ -130,59 +130,117 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class Event
+{
+    /** @return list<array<string,mixed>> */
+    public static function upcoming(int $limit = 20): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT * FROM events
+             WHERE status = 'published' AND starts_at >= NOW()
+             ORDER BY starts_at ASC
+             LIMIT :lim"
+        );
+        $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    /** @return list<array<string,mixed>> */
+    public static function past(int $limit = 20): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT * FROM events
+             WHERE status = 'published' AND starts_at < NOW()
+             ORDER BY starts_at DESC
+             LIMIT :lim"
+        );
+        $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @return array<string,mixed>|null */
+    public static function findBySlug(string $slug, bool $publishedOnly = true): ?array
+    {
+        $sql = 'SELECT * FROM events WHERE slug = :slug';
+        if ($publishedOnly) {
+            $sql .= " AND status = 'published'";
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM events WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    /** @return list<array<string,mixed>> */
+    public static function all(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM events ORDER BY starts_at DESC');
+        return $stmt->fetchAll() ?: [];
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
+    /** @param array<string,mixed> $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO events (slug, title, description, cover_image, venue,
+                                 starts_at, ends_at, status)
+             VALUES (:slug,:title,:description,:cover_image,:venue,
+                     :starts_at,:ends_at,:status)'
+        );
+        $stmt->execute([
+            ':slug'        => $data['slug'],
+            ':title'       => $data['title'],
+            ':description' => $data['description'] ?? null,
+            ':cover_image' => $data['cover_image'] ?? null,
+            ':venue'       => $data['venue']       ?? null,
+            ':starts_at'   => $data['starts_at'],
+            ':ends_at'     => $data['ends_at']     ?? null,
+            ':status'      => $data['status']      ?? 'draft',
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+    /** @param array<string,mixed> $data */
+    public static function update(int $id, array $data): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE events SET slug=:slug, title=:title, description=:description,
+                               cover_image=:cover_image, venue=:venue,
+                               starts_at=:starts_at, ends_at=:ends_at, status=:status
+             WHERE id=:id'
+        );
+        $stmt->execute([
+            ':slug'        => $data['slug'],
+            ':title'       => $data['title'],
+            ':description' => $data['description'] ?? null,
+            ':cover_image' => $data['cover_image'] ?? null,
+            ':venue'       => $data['venue']       ?? null,
+            ':starts_at'   => $data['starts_at'],
+            ':ends_at'     => $data['ends_at']     ?? null,
+            ':status'      => $data['status']      ?? 'draft',
+            ':id'          => $id,
+        ]);
+    }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM events WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

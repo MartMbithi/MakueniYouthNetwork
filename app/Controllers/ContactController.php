@@ -130,59 +130,102 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers;
+
+use App\Core\Csrf;
+use App\Core\RateLimit;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
+use App\Models\Message;
+use App\Models\Setting;
 use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class ContactController
+{
+    public function form(): string
+    {
+        return View::render('public/contact.twig', [
+            'title' => 'Contact us',
+            'old'   => $_SESSION['_old_contact'] ?? [],
+            'errors' => $_SESSION['_errors_contact'] ?? [],
+        ] + $this->clearOld());
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function submit(): string
+    {
+        Csrf::requireValid();
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+        $ip = Request::ip();
+        if (!RateLimit::attempt('contact:' . $ip, 3, 600)) {
+            View::flash('Too many submissions from your network. Please try again in a few minutes.', 'error');
+            Response::redirect('/contact');
+        }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+        $name    = trim((string) Request::input('name', ''));
+        $email   = trim((string) Request::input('email', ''));
+        $subject = trim((string) Request::input('subject', ''));
+        $body    = trim((string) Request::input('message', ''));
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+        $errors = $this->validate($name, $email, $body);
+        if ($errors !== []) {
+            $_SESSION['_errors_contact'] = $errors;
+            $_SESSION['_old_contact']    = compact('name', 'email', 'subject', 'body');
+            Response::redirect('/contact');
+        }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
+        $id = Message::create([
+            'name'    => $name,
+            'email'   => $email,
+            'subject' => $subject !== '' ? $subject : null,
+            'body'    => $body,
+        ]);
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+        $notifyTo = Setting::get('email', 'info@makueniyouth.org') ?? 'info@makueniyouth.org';
+        Mailer::send(
+            $notifyTo,
+            'New contact form message: ' . ($subject !== '' ? $subject : '(no subject)'),
+            $this->notificationHtml($id, $name, $email, $subject, $body),
+            $email
+        );
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        View::flash('Thank you — your message has been received. We will reply shortly.', 'success');
+        Response::redirect('/contact');
+        return '';
+    }
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @return array<string,array<int,string>> */
+    private function validate(string $name, string $email, string $body): array
+    {
+        $errors = [];
+        if ($name === '') {
+            $errors['name'][] = 'Please tell us your name.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'][] = 'Please enter a valid email address.';
+        }
+        if (strlen($body) < 10) {
+            $errors['message'][] = 'Please share a few more words (at least 10 characters).';
+        }
+        if (strlen($body) > 5000) {
+            $errors['message'][] = 'That message is too long — please keep it under 5,000 characters.';
+        }
+        return $errors;
+    }
+
+    private function notificationHtml(int $id, string $name, string $email, string $subject, string $body): string
+    {
+        $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+        return '<h2>New contact message #' . $id . '</h2>'
+            . '<p><strong>From:</strong> ' . $h($name) . ' &lt;' . $h($email) . '&gt;</p>'
+            . ($subject !== '' ? '<p><strong>Subject:</strong> ' . $h($subject) . '</p>' : '')
+            . '<hr><p>' . nl2br($h($body)) . '</p>';
+    }
+
+    /** @return array<string,mixed> */
+    private function clearOld(): array
+    {
+        unset($_SESSION['_old_contact'], $_SESSION['_errors_contact']);
+        return [];
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

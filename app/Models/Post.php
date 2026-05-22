@@ -130,59 +130,124 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class Post
+{
+    /** @return list<array<string,mixed>> */
+    public static function published(int $limit = 10, int $offset = 0): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug
+             FROM posts p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.status = 'published' AND p.published_at <= NOW()
+             ORDER BY p.published_at DESC
+             LIMIT :lim OFFSET :off"
+        );
+        $stmt->bindValue(':lim', $limit,  \PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public static function publishedCount(): int
+    {
+        $row = Database::connection()->query(
+            "SELECT COUNT(*) FROM posts WHERE status = 'published' AND published_at <= NOW()"
+        )->fetchColumn();
+        return (int) $row;
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @return array<string,mixed>|null */
+    public static function findBySlug(string $slug, bool $publishedOnly = true): ?array
+    {
+        $sql = "SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+                       u.name AS author_name
+                FROM posts p
+                LEFT JOIN categories c ON c.id = p.category_id
+                LEFT JOIN users u      ON u.id = p.author_id
+                WHERE p.slug = :slug";
+        if ($publishedOnly) {
+            $sql .= " AND p.status = 'published' AND p.published_at <= NOW()";
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM posts WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    /** @return list<array<string,mixed>> */
+    public static function all(): array
+    {
+        $stmt = Database::connection()->query(
+            "SELECT p.*, c.name AS category_name FROM posts p
+             LEFT JOIN categories c ON c.id = p.category_id
+             ORDER BY p.created_at DESC"
+        );
+        return $stmt->fetchAll() ?: [];
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
+    /** @param array<string,mixed> $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO posts (slug, title, excerpt, body, cover_image, category_id,
+                                author_id, status, published_at)
+             VALUES (:slug,:title,:excerpt,:body,:cover_image,:category_id,
+                     :author_id,:status,:published_at)'
+        );
+        $stmt->execute([
+            ':slug'         => $data['slug'],
+            ':title'        => $data['title'],
+            ':excerpt'      => $data['excerpt']      ?? null,
+            ':body'         => $data['body']         ?? null,
+            ':cover_image'  => $data['cover_image']  ?? null,
+            ':category_id'  => $data['category_id']  ?? null,
+            ':author_id'    => $data['author_id']    ?? null,
+            ':status'       => $data['status']       ?? 'draft',
+            ':published_at' => $data['published_at'] ?? null,
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+    /** @param array<string,mixed> $data */
+    public static function update(int $id, array $data): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE posts SET slug=:slug, title=:title, excerpt=:excerpt, body=:body,
+                              cover_image=:cover_image, category_id=:category_id,
+                              status=:status, published_at=:published_at
+             WHERE id=:id'
+        );
+        $stmt->execute([
+            ':slug'         => $data['slug'],
+            ':title'        => $data['title'],
+            ':excerpt'      => $data['excerpt']      ?? null,
+            ':body'         => $data['body']         ?? null,
+            ':cover_image'  => $data['cover_image']  ?? null,
+            ':category_id'  => $data['category_id']  ?? null,
+            ':status'       => $data['status']       ?? 'draft',
+            ':published_at' => $data['published_at'] ?? null,
+            ':id'           => $id,
+        ]);
+    }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM posts WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 }
-
-$router = new Router();
-
-require $rootDir . '/routes/web.php';
-require $rootDir . '/routes/admin.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

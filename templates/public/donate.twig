@@ -1,0 +1,47 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Donate{% endblock %}
+{% block meta_description %}Support youth-led civic action in Makueni County. Donations are processed securely via Paystack.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Donate</span>
+    <h1>Your gift keeps youth at the decision table.</h1>
+    <p>Every shilling funds civic training, mentorship and advocacy across Makueni County. Donations are processed securely via Paystack.</p>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap" style="max-width:680px">
+    {% if pending_message is defined and pending_message %}
+      <div class="flash info" style="margin-bottom:30px">{{ pending_message }}</div>
+    {% endif %}
+
+    <form class="form" method="post" action="/donate" novalidate>
+      {{ csrf_field()|raw }}
+
+      <div class="field">
+        <label for="amount">Amount (KES)</label>
+        <input type="number" id="amount" name="amount" min="100" step="50" value="500" required>
+        <small style="color:var(--muted);margin-top:6px;font-size:.84rem">Minimum 100 KES. We accept card, mobile money and bank transfer via Paystack.</small>
+      </div>
+      <div class="field">
+        <label for="donor_name">Your name</label>
+        <input type="text" id="donor_name" name="donor_name" required>
+      </div>
+      <div class="field">
+        <label for="donor_email">Email (receipt sent here)</label>
+        <input type="email" id="donor_email" name="donor_email" required>
+      </div>
+      <div class="field">
+        <label for="donor_phone">Phone (optional)</label>
+        <input type="tel" id="donor_phone" name="donor_phone">
+      </div>
+      <div>
+        <button type="submit" class="btn btn-amber">Donate via Paystack</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

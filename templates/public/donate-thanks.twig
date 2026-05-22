@@ -1,0 +1,28 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Thank you{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    {% if status == 'completed' %}
+      <span class="eyebrow">Donation received</span>
+      <h1>Thank you — your support means everything.</h1>
+      <p>Your transaction is complete. A receipt has been sent to your email.</p>
+    {% elseif status == 'pending' %}
+      <span class="eyebrow">Donation pending</span>
+      <h1>We are confirming your payment.</h1>
+      <p>This page will update shortly. You will also receive an email when confirmation comes through.</p>
+    {% else %}
+      <span class="eyebrow">Donation failed</span>
+      <h1>Something went wrong with your payment.</h1>
+      <p>No charge was applied. Please <a href="/donate" style="color:var(--green-2);font-weight:600">try again</a> or get in touch.</p>
+    {% endif %}
+
+    <div class="hero-actions" style="margin-top:30px">
+      <a href="/" class="btn btn-green">Back to home</a>
+      <a href="/impact" class="btn btn-ghost">Read our impact stories</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

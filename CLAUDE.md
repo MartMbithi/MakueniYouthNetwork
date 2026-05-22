@@ -123,12 +123,15 @@ composer install                       # install deps
 cp .env.example .env                    # then fill DB + M-Pesa creds
 mysql -u root -p myn < database/schema.sql
 mysql -u root -p myn < database/seed.sql
-php -S localhost:8000 -t public         # local dev server
+php -S localhost:8000 -t public server.php   # local dev (use router shim)
 composer dump-autoload                  # after adding classes
 vendor/bin/phpunit                      # tests (if/when added)
 ```
 
-The site must run with nothing more than `php -S localhost:8000 -t public`.
+Locally, run with `php -S localhost:8000 -t public server.php` — the
+`server.php` shim restores Apache-like routing for URLs with file
+extensions (e.g. `/sitemap.xml`). In production the `.htaccess` rewrite
+does this work; `server.php` is not a browser-reachable entry point.
 
 ## 8. Definition of done (every task)
 

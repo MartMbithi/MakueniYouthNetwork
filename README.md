@@ -24,7 +24,7 @@ cp .env.example .env
 # fill in DB credentials, SMTP, and Paystack test keys
 mysql -u root -p myn < database/schema.sql
 mysql -u root -p myn < database/seed.sql
-php -S localhost:8000 -t public
+php -S localhost:8000 -t public server.php
 ```
 
 Browse to <http://localhost:8000/>.

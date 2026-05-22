@@ -1,0 +1,62 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Events{% endblock %}
+{% block meta_description %}Upcoming and past events from Makueni Youth Network across Makueni County.{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Events</span>
+    <h1>Where we will be — and where we have been.</h1>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap">
+    <span class="eyebrow">Upcoming</span>
+    <h2 style="font-size:1.8rem;margin:14px 0 28px">Coming up</h2>
+    {% if upcoming|length == 0 %}
+      <p style="color:var(--muted)">No upcoming events scheduled. Check back soon, or <a href="/volunteer" style="color:var(--green-2);font-weight:600">volunteer with us</a>.</p>
+    {% else %}
+      <div class="news-grid" style="grid-template-columns:repeat(3,1fr)">
+        {% for e in upcoming %}
+          <article class="news reveal">
+            <div class="news-img">
+              <span class="news-date"><b>{{ e.starts_at|date('d') }}</b><small>{{ e.starts_at|date('M') }}</small></span>
+              {% if e.cover_image %}<img src="{{ e.cover_image }}" alt="{{ e.title }}" loading="lazy">{% endif %}
+            </div>
+            <div class="news-body">
+              <span class="news-cat">{{ e.starts_at|date('l, F j') }}{% if e.venue %} · {{ e.venue }}{% endif %}</span>
+              <h3>{{ e.title }}</h3>
+              <a href="/events/{{ e.slug }}" class="news-more">Details →</a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div style="margin-top:80px">
+      <span class="eyebrow">Past</span>
+      <h2 style="font-size:1.8rem;margin:14px 0 28px">Where we have been</h2>
+      {% if past|length == 0 %}
+        <p style="color:var(--muted)">No past events recorded yet.</p>
+      {% else %}
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:14px">
+          {% for e in past %}
+            <li style="display:flex;gap:16px;padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff">
+              <div style="text-align:center;min-width:74px">
+                <div style="font-family:'Fraunces',serif;font-size:1.4rem;font-weight:600">{{ e.starts_at|date('d') }}</div>
+                <div style="font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">{{ e.starts_at|date('M Y') }}</div>
+              </div>
+              <div style="flex:1">
+                <a href="/events/{{ e.slug }}" style="font-weight:600">{{ e.title }}</a>
+                {% if e.venue %}<div style="color:var(--muted);font-size:.9rem">{{ e.venue }}</div>{% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
