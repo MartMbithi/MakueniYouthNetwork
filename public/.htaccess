@@ -4,7 +4,83 @@ RewriteEngine On
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-# Send everything that is NOT an existing file or directory to index.php
+# -------------------------------------------------------------------------
+# Security headers (M7.2)
+# -------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "geolocation=(), camera=(), microphone=()"
+</IfModule>
+
+# -------------------------------------------------------------------------
+# Gzip (M7.3)
+# -------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# -------------------------------------------------------------------------
+# Static asset cache (M7.3)
+# -------------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg     "access plus 30 days"
+    ExpiresByType image/png      "access plus 30 days"
+    ExpiresByType image/webp     "access plus 30 days"
+    ExpiresByType image/svg+xml  "access plus 30 days"
+    ExpiresByType text/css       "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType font/woff2     "access plus 365 days"
+</IfModule>
+
+# =========================================================================
+# 301 redirects from the legacy WordPress site (M6.2)
+# Map authoritative source: database/redirects.md
+# =========================================================================
+
+# Block sensitive WP endpoints outright
+RedirectMatch 403 ^/wp-admin($|/.*)
+RedirectMatch 403 ^/wp-login\.php$
+RedirectMatch 403 ^/xmlrpc\.php$
+RedirectMatch 410 ^/feed/?$
+RedirectMatch 410 ^/feed/(rss|atom|rdf)/?$
+
+# Section / program pages
+Redirect 301 /advocacy-civic-education/        /programs/advocacy-civic-engagement
+Redirect 301 /advocacy-civic-engagement/       /programs/advocacy-civic-engagement
+Redirect 301 /leadership-talent/               /programs/leadership-talent-development
+Redirect 301 /leadership-talent-development/   /programs/leadership-talent-development
+Redirect 301 /education-capacity/              /programs/education-capacity-enhancement
+Redirect 301 /education-capacity-enhancement/  /programs/education-capacity-enhancement
+Redirect 301 /foundational-literacy-numeracy/  /programs/foundational-literacy-numeracy-assessment
+Redirect 301 /youth-mentorship/                /programs/youth-mentorship
+
+# Static pages
+Redirect 301 /about-us/    /about
+Redirect 301 /contact-us/  /contact
+Redirect 301 /donate-now/  /donate
+
+# Blog / archive landing pages
+Redirect 301 /blog/        /impact
+Redirect 301 /news/        /impact
+
+# Category / tag / author archives -> /impact list
+RedirectMatch 301 ^/category/.*$ /impact
+RedirectMatch 301 ^/tag/.*$      /impact
+RedirectMatch 301 ^/author/.*$   /impact
+
+# Dated post permalinks  /YYYY/MM/DD/{slug}/  ->  /impact/{slug}
+RedirectMatch 301 ^/[0-9]{4}/[0-9]{2}/[0-9]{2}/([^/]+)/?$ /impact/$1
+# Two-segment date  /YYYY/MM/{slug}/         ->  /impact/{slug}
+RedirectMatch 301 ^/[0-9]{4}/[0-9]{2}/([^/]+)/?$ /impact/$1
+
+# =========================================================================
+# Front controller
+# =========================================================================
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
