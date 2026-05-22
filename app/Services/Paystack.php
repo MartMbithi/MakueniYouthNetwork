@@ -130,65 +130,154 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
-use App\Services\Paystack;
+namespace App\Services;
 
-$rootDir = dirname(__DIR__);
+use RuntimeException;
 
-require $rootDir . '/vendor/autoload.php';
+final class Paystack
+{
+    private static string $secretKey = '';
+    private static string $publicKey = '';
+    private static string $currency  = 'KES';
+    private static string $baseUrl   = 'https://api.paystack.co';
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /**
+     * @param array{
+     *   secret_key:?string, public_key:?string, currency:string, base_url:string, env:string,
+     *   callback_url:?string
+     * } $config
+     */
+    public static function configure(array $config): void
+    {
+        self::$secretKey = (string) ($config['secret_key'] ?? '');
+        self::$publicKey = (string) ($config['public_key'] ?? '');
+        self::$currency  = (string) ($config['currency']   ?? 'KES');
+        self::$baseUrl   = rtrim((string) ($config['base_url'] ?? 'https://api.paystack.co'), '/');
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    public static function publicKey(): string
+    {
+        return self::$publicKey;
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    public static function currency(): string
+    {
+        return self::$currency;
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
-Paystack::configure($config['paystack']);
+    /**
+     * Initialize a Paystack transaction.
+     *
+     * @param int $amountMinor amount in the minor unit of the currency (kobo / cents)
+     * @param array<string,mixed> $metadata
+     * @return array{authorization_url:string,access_code:string,reference:string}
+     */
+    public static function initialize(int $amountMinor, string $email, string $reference, ?string $callbackUrl = null, array $metadata = []): array
+    {
+        self::requireSecret();
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+        $payload = [
+            'email'     => $email,
+            'amount'    => $amountMinor,
+            'currency'  => self::$currency,
+            'reference' => $reference,
+        ];
+        if ($callbackUrl !== null && $callbackUrl !== '') {
+            $payload['callback_url'] = $callbackUrl;
+        }
+        if ($metadata !== []) {
+            $payload['metadata'] = $metadata;
+        }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $body = self::request('POST', '/transaction/initialize', $payload);
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+        if (empty($body['status']) || empty($body['data']['authorization_url'])) {
+            throw new RuntimeException('Paystack initialize failed: ' . ($body['message'] ?? 'unknown'));
+        }
+
+        return [
+            'authorization_url' => (string) $body['data']['authorization_url'],
+            'access_code'       => (string) $body['data']['access_code'],
+            'reference'         => (string) $body['data']['reference'],
+        ];
+    }
+
+    /**
+     * Verify a transaction by its reference.
+     *
+     * @return array<string,mixed>  the `data` block from Paystack's response
+     */
+    public static function verify(string $reference): array
+    {
+        self::requireSecret();
+        $body = self::request('GET', '/transaction/verify/' . rawurlencode($reference));
+        if (empty($body['status'])) {
+            throw new RuntimeException('Paystack verify failed: ' . ($body['message'] ?? 'unknown'));
+        }
+        return (array) ($body['data'] ?? []);
+    }
+
+    /**
+     * Validate the X-Paystack-Signature header. Paystack signs the raw request
+     * body with HMAC-SHA512 keyed by the secret key. Constant-time compare.
+     */
+    public static function verifyWebhookSignature(string $rawBody, ?string $signatureHeader): bool
+    {
+        if (self::$secretKey === '' || $signatureHeader === null || $signatureHeader === '') {
+            return false;
+        }
+        $expected = hash_hmac('sha512', $rawBody, self::$secretKey);
+        return hash_equals($expected, $signatureHeader);
+    }
+
+    /** @param array<string,mixed> $payload */
+    private static function request(string $method, string $path, array $payload = []): array
+    {
+        $url = self::$baseUrl . $path;
+        $ch  = curl_init();
+
+        $headers = [
+            'Authorization: Bearer ' . self::$secretKey,
+            'Accept: application/json',
+        ];
+
+        $opts = [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT        => 20,
+            CURLOPT_FOLLOWLOCATION => false,
+        ];
+
+        if ($method === 'POST') {
+            $opts[CURLOPT_POST] = true;
+            $opts[CURLOPT_POSTFIELDS] = json_encode($payload, JSON_UNESCAPED_SLASHES);
+            $headers[] = 'Content-Type: application/json';
+        }
+        $opts[CURLOPT_HTTPHEADER] = $headers;
+
+        curl_setopt_array($ch, $opts);
+        $raw = curl_exec($ch);
+
+        if ($raw === false) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            throw new RuntimeException('Paystack network error: ' . $err);
+        }
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $body = json_decode((string) $raw, true);
+        if (!is_array($body)) {
+            throw new RuntimeException('Paystack returned non-JSON (HTTP ' . $status . ').');
+        }
+        return $body;
+    }
+
+    private static function requireSecret(): void
+    {
+        if (self::$secretKey === '') {
+            throw new RuntimeException('PAYSTACK_SECRET_KEY is not configured.');
+        }
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

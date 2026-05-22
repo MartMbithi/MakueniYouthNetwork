@@ -132,7 +132,13 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Csrf;
+use App\Core\RateLimit;
+use App\Core\Request;
+use App\Core\Response;
 use App\Core\View;
+use App\Models\Donation;
+use App\Services\Paystack;
 
 final class DonationController
 {
@@ -140,28 +146,200 @@ final class DonationController
     {
         return View::render('public/donate.twig', [
             'title' => 'Donate',
-        ]);
+            'old'   => $_SESSION['_old_donate'] ?? [],
+            'errors'=> $_SESSION['_errors_donate'] ?? [],
+        ] + $this->clearOld());
     }
 
     public function initiate(): string
     {
-        return View::render('public/donate.twig', [
-            'title' => 'Donate',
-            'pending_message' => 'Paystack integration is wired in milestone M5.',
+        Csrf::requireValid();
+
+        $ip = Request::ip();
+        if (!RateLimit::attempt('donate:' . $ip, 5, 600)) {
+            View::flash('Too many attempts. Please try again in a few minutes.', 'error');
+            Response::redirect('/donate');
+        }
+
+        $amountKes = (int) Request::input('amount', 0);
+        $name      = trim((string) Request::input('donor_name', ''));
+        $email     = trim((string) Request::input('donor_email', ''));
+        $phone     = trim((string) Request::input('donor_phone', ''));
+
+        $errors = [];
+        if ($amountKes < 100) {
+            $errors['amount'][] = 'Minimum donation is 100 KES.';
+        }
+        if ($amountKes > 5_000_000) {
+            $errors['amount'][] = 'Amount looks unusually large — please contact us to arrange.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['donor_email'][] = 'A valid email is required so we can send your receipt.';
+        }
+        if (strlen($name) < 2) {
+            $errors['donor_name'][] = 'Please share your name.';
+        }
+        if ($errors !== []) {
+            $_SESSION['_errors_donate'] = $errors;
+            $_SESSION['_old_donate']    = compact('amountKes', 'name', 'email', 'phone');
+            Response::redirect('/donate');
+        }
+
+        $reference = $this->generateReference();
+        Donation::create([
+            'donor_name'  => $name,
+            'donor_email' => $email,
+            'donor_phone' => $phone !== '' ? $phone : null,
+            'amount'      => $amountKes,
+            'currency'    => Paystack::currency(),
+            'provider'    => 'paystack',
+            'reference'   => $reference,
+            'status'      => 'pending',
         ]);
+
+        $callback = ($_ENV['APP_URL'] ?? '') !== ''
+            ? rtrim($_ENV['APP_URL'], '/') . '/donate/callback'
+            : null;
+
+        try {
+            $init = Paystack::initialize(
+                $amountKes * 100,
+                $email,
+                $reference,
+                $callback,
+                ['donor_name' => $name, 'donor_phone' => $phone]
+            );
+        } catch (\Throwable $e) {
+            error_log('[Paystack] initialize failed: ' . $e->getMessage());
+            View::flash(
+                'Could not start the payment right now. Please try again in a moment.',
+                'error'
+            );
+            Response::redirect('/donate');
+            return '';
+        }
+
+        Response::redirect($init['authorization_url']);
+        return '';
     }
 
+    /**
+     * Donor returns here from Paystack checkout. Always re-verify server-side
+     * — never trust the redirect alone.
+     */
     public function callback(): string
     {
+        $reference = trim((string) (Request::input('reference', '') ?: Request::input('trxref', '')));
+        if ($reference === '') {
+            return View::render('public/donate-thanks.twig', ['title' => 'Thank you', 'status' => 'failed']);
+        }
+
+        $donation = Donation::findByReference($reference);
+        if ($donation === null) {
+            return View::render('public/donate-thanks.twig', ['title' => 'Thank you', 'status' => 'failed']);
+        }
+
+        $resolved = $this->resolveStatus($donation, $reference);
+
         return View::render('public/donate-thanks.twig', [
             'title'  => 'Thank you',
-            'status' => 'pending',
+            'status' => $resolved,
         ]);
     }
 
+    /**
+     * Paystack webhook endpoint. Signature-verified, then re-verifies via the
+     * API to defeat replay/forgery. Idempotent.
+     */
     public function webhook(): string
     {
+        $rawBody = (string) file_get_contents('php://input');
+        $signature = $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] ?? null;
+
+        if (!Paystack::verifyWebhookSignature($rawBody, is_string($signature) ? $signature : null)) {
+            http_response_code(400);
+            return '';
+        }
+
+        $payload = json_decode($rawBody, true);
+        if (!is_array($payload)) {
+            http_response_code(400);
+            return '';
+        }
+
+        $event = (string) ($payload['event'] ?? '');
+        $reference = (string) ($payload['data']['reference'] ?? '');
+        if ($reference === '') {
+            http_response_code(200);
+            return '';
+        }
+
+        $donation = Donation::findByReference($reference);
+        if ($donation === null) {
+            http_response_code(200);
+            return '';
+        }
+
+        // Always go back to the API for ground truth — webhooks can be forged
+        // even with a valid signature if someone replays an old payload.
+        $this->resolveStatus($donation, $reference);
+
         http_response_code(200);
         return '';
+    }
+
+    /**
+     * Re-verify with Paystack and persist the outcome, returning the new
+     * status (pending/completed/failed). Safe to call repeatedly.
+     */
+    private function resolveStatus(array $donation, string $reference): string
+    {
+        try {
+            $tx = Paystack::verify($reference);
+        } catch (\Throwable $e) {
+            error_log('[Paystack] verify failed for ' . $reference . ': ' . $e->getMessage());
+            return $donation['status'];
+        }
+
+        $expectedMinor = (int) round(((float) $donation['amount']) * 100);
+        $gotMinor      = (int) ($tx['amount']   ?? 0);
+        $gotCurrency   = (string) ($tx['currency'] ?? '');
+        $remoteStatus  = (string) ($tx['status']   ?? '');
+
+        $isSuccess = $remoteStatus === 'success'
+            && $gotMinor === $expectedMinor
+            && strcasecmp($gotCurrency, (string) $donation['currency']) === 0;
+
+        if ($isSuccess && $donation['status'] !== 'completed') {
+            Donation::markCompleted(
+                $reference,
+                isset($tx['id']) ? (int) $tx['id'] : null,
+                (string) ($tx['gateway_response'] ?? null),
+                (string) ($tx['channel'] ?? null) ?: null
+            );
+            return 'completed';
+        }
+        if ($remoteStatus === 'failed' && $donation['status'] !== 'failed') {
+            Donation::markFailed($reference, (string) ($tx['gateway_response'] ?? null));
+            return 'failed';
+        }
+        if ($remoteStatus === 'abandoned' && $donation['status'] === 'pending') {
+            // Leave as pending in our ledger; user may retry. (Admin ledger
+            // shows the gateway_response.)
+            return 'pending';
+        }
+        return $donation['status'] === 'completed' ? 'completed' : 'pending';
+    }
+
+    private function generateReference(): string
+    {
+        return 'MYN-' . date('YmdHis') . '-' . substr(bin2hex(random_bytes(4)), 0, 8);
+    }
+
+    /** @return array<string,mixed> */
+    private function clearOld(): array
+    {
+        unset($_SESSION['_old_donate'], $_SESSION['_errors_donate']);
+        return [];
     }
 }

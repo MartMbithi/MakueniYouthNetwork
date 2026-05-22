@@ -21,22 +21,31 @@
     <form class="form" method="post" action="/donate" novalidate>
       {{ csrf_field()|raw }}
 
+      {% if errors is defined and errors|length > 0 %}
+        <div class="errors">
+          <strong>Please fix:</strong>
+          <ul>
+            {% for field, msgs in errors %}{% for m in msgs %}<li>{{ m }}</li>{% endfor %}{% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
       <div class="field">
         <label for="amount">Amount (KES)</label>
-        <input type="number" id="amount" name="amount" min="100" step="50" value="500" required>
+        <input type="number" id="amount" name="amount" min="100" step="50" value="{{ old.amountKes|default(500) }}" required>
         <small style="color:var(--muted);margin-top:6px;font-size:.84rem">Minimum 100 KES. We accept card, mobile money and bank transfer via Paystack.</small>
       </div>
       <div class="field">
         <label for="donor_name">Your name</label>
-        <input type="text" id="donor_name" name="donor_name" required>
+        <input type="text" id="donor_name" name="donor_name" value="{{ old.name|default('') }}" required>
       </div>
       <div class="field">
         <label for="donor_email">Email (receipt sent here)</label>
-        <input type="email" id="donor_email" name="donor_email" required>
+        <input type="email" id="donor_email" name="donor_email" value="{{ old.email|default('') }}" required>
       </div>
       <div class="field">
         <label for="donor_phone">Phone (optional)</label>
-        <input type="tel" id="donor_phone" name="donor_phone">
+        <input type="tel" id="donor_phone" name="donor_phone" value="{{ old.phone|default('') }}">
       </div>
       <div>
         <button type="submit" class="btn btn-amber">Donate via Paystack</button>
