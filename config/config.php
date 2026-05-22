@@ -46,12 +46,12 @@ return [
         'pass' => $env('MAIL_PASS'),
         'from' => $env('MAIL_FROM', 'no-reply@makueniyouth.org'),
     ],
-    'mpesa' => [
-        'env'             => $env('MPESA_ENV', 'sandbox'),
-        'consumer_key'    => $env('MPESA_CONSUMER_KEY'),
-        'consumer_secret' => $env('MPESA_CONSUMER_SECRET'),
-        'shortcode'       => $env('MPESA_SHORTCODE'),
-        'passkey'         => $env('MPESA_PASSKEY'),
-        'callback_url'    => $env('MPESA_CALLBACK_URL'),
+    'paystack' => [
+        'env'          => $env('PAYSTACK_ENV', 'test'),
+        'public_key'   => $env('PAYSTACK_PUBLIC_KEY'),
+        'secret_key'   => $env('PAYSTACK_SECRET_KEY'),
+        'callback_url' => $env('PAYSTACK_CALLBACK_URL'),
+        'currency'     => strtoupper($env('PAYSTACK_CURRENCY', 'KES') ?? 'KES'),
+        'base_url'     => 'https://api.paystack.co',
     ],
 ];

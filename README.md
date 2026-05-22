@@ -13,7 +13,7 @@ Built to be fast on mobile data, cheap to host, and editable by non-technical st
 - Hand-rolled `App\Core\Router` — no framework
 - [phpdotenv](https://github.com/vlucas/phpdotenv) for environment config
 - [PHPMailer](https://github.com/PHPMailer/PHPMailer) over SMTP
-- Safaricom Daraja (M-Pesa STK Push) via raw cURL
+- Paystack (Initialize + Verify + Webhook) via raw cURL
 - Plain CSS + vanilla JS — no build step, no npm
 
 ## Local setup
@@ -21,7 +21,7 @@ Built to be fast on mobile data, cheap to host, and editable by non-technical st
 ```bash
 composer install
 cp .env.example .env
-# fill in DB credentials, SMTP, and Daraja sandbox keys
+# fill in DB credentials, SMTP, and Paystack test keys
 mysql -u root -p myn < database/schema.sql
 mysql -u root -p myn < database/seed.sql
 php -S localhost:8000 -t public

@@ -27,7 +27,7 @@ into the real project. Do not redesign it.
 | Routing | Hand-rolled `App\Core\Router` (no framework) |
 | Env | `vlucas/phpdotenv` |
 | Email | `phpmailer/phpmailer` over SMTP |
-| Payments | Safaricom Daraja API — M-Pesa STK Push (no SDK; raw cURL) |
+| Payments | **Paystack** — Initialize + Verify + Webhook (no SDK; raw cURL) |
 | Frontend | Plain CSS + vanilla JS. **No build step. No npm.** |
 | Dependencies | Composer only |
 
@@ -60,7 +60,7 @@ makueniyouth/
 │   ├── Controllers/       # public controllers
 │   ├── Controllers/Admin/ # CMS controllers
 │   ├── Models/            # one class per table; thin PDO wrappers
-│   └── Services/          # Mpesa, Mailer, ImageProcessor
+│   └── Services/          # Paystack, Mailer, ImageProcessor
 ├── templates/
 │   ├── layouts/           # base.twig, admin.twig
 │   ├── partials/          # header, footer, nav, flash
@@ -105,8 +105,10 @@ makueniyouth/
   random name; store in `public/uploads/`; never trust the original filename.
 - Sessions → cookie flags `HttpOnly`, `Secure`, `SameSite=Lax`.
 - Rate-limit login + public forms (simple per-IP counter in DB or session).
-- M-Pesa callback → validate and confirm amount server-side before marking a
-  donation `completed`.
+- Paystack webhook → verify the `X-Paystack-Signature` HMAC (SHA-512 of the raw
+  request body using `PAYSTACK_SECRET_KEY`) **and** re-verify the transaction
+  via the Paystack `/transaction/verify/{reference}` endpoint before marking a
+  donation `completed`. Never trust webhook amounts without re-verification.
 - `.env`, `storage/`, `database/` must be in `.gitignore` (keep `.env.example`).
 
 ## 7. Commands

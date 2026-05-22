@@ -32,8 +32,8 @@ Tracking: mark each task `[x]` when its acceptance passes.
 - **Spec:** `.env.example` keys — `APP_ENV`, `APP_URL`, `APP_KEY`,
   `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`,
   `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM`,
-  `MPESA_ENV`, `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`,
-  `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL`.
+  `PAYSTACK_ENV`, `PAYSTACK_PUBLIC_KEY`, `PAYSTACK_SECRET_KEY`,
+  `PAYSTACK_CALLBACK_URL`, `PAYSTACK_CURRENCY`.
   `config/config.php` loads `.env` via phpdotenv and returns a typed config array.
 - **Acceptance:** `require config/config.php` returns an array with `db` and
   `mail` sub-arrays; missing `.env` throws a clear error.
@@ -214,10 +214,16 @@ small, single-responsibility class with the contract below.
     id INT AUTO_INCREMENT PRIMARY KEY,
     donor_name VARCHAR(160), donor_phone VARCHAR(40), donor_email VARCHAR(190),
     amount DECIMAL(10,2) NOT NULL,
-    channel ENUM('mpesa','card') DEFAULT 'mpesa',
-    mpesa_receipt VARCHAR(60) NULL, checkout_ref VARCHAR(80) NULL,
-    status ENUM('pending','completed','failed') DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    currency CHAR(3) NOT NULL DEFAULT 'KES',
+    provider VARCHAR(40) NOT NULL DEFAULT 'paystack',
+    channel VARCHAR(40) NULL,
+    reference VARCHAR(120) UNIQUE NOT NULL,
+    paystack_id BIGINT NULL,
+    gateway_response VARCHAR(255) NULL,
+    status ENUM('pending','completed','failed','abandoned') DEFAULT 'pending',
+    paid_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_donations_status (status, created_at)
   );
   CREATE TABLE settings (
     setting_key VARCHAR(80) PRIMARY KEY, setting_value TEXT
@@ -379,31 +385,55 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 
 ---
 
-## MILESTONE M5 — M-Pesa donations
+## MILESTONE M5 — Paystack donations
 
-### [ ] M5.1 — Mpesa service
-- **Files:** `app/Services/Mpesa.php`
-- **Spec:** raw cURL against Daraja. Methods: `accessToken()` (OAuth),
-  `stkPush(string $phone, int $amount, string $ref): array`. Reads creds from
-  `.env`. Phone normalised to `2547XXXXXXXX`. Sandbox vs production via
-  `MPESA_ENV`.
-- **Acceptance:** in sandbox, `stkPush()` returns a `CheckoutRequestID`.
+### [ ] M5.1 — Paystack service
+- **Files:** `app/Services/Paystack.php`
+- **Spec:** raw cURL against the Paystack API (`https://api.paystack.co`).
+  Methods:
+  - `initialize(int $amountMinor, string $email, string $reference, array $metadata=[]): array`
+    — POSTs `/transaction/initialize`, returns `authorization_url`,
+    `access_code`, `reference`.
+  - `verify(string $reference): array` — GETs `/transaction/verify/{ref}`,
+    returns the full transaction payload.
+  - `verifyWebhookSignature(string $rawBody, string $signatureHeader): bool` —
+    HMAC SHA-512 of `$rawBody` keyed by `PAYSTACK_SECRET_KEY`, timing-safe
+    compared to `$signatureHeader`.
+  All requests send `Authorization: Bearer <PAYSTACK_SECRET_KEY>`. Amounts are
+  in the minor unit (kobo / cents) — for KES, multiply by 100. Currency from
+  `PAYSTACK_CURRENCY` (default `KES`).
+- **Acceptance:** with valid test keys, `initialize()` returns an
+  `authorization_url` pointing at `https://checkout.paystack.com/...`.
 
 ### [ ] M5.2 — Donation flow
 - **Files:** `app/Controllers/DonationController.php`,
   `templates/public/{donate,donate-thanks}.twig`
-- **Spec:** `form()` shows amount + phone fields. `initiate()` validates,
-  inserts a `donations` row `status=pending` with `checkout_ref`, calls
-  `Mpesa::stkPush()`, shows a "check your phone" page. `callback()` receives
-  Daraja's POST, **verifies amount and ref server-side**, updates the row to
-  `completed`/`failed` and stores `mpesa_receipt`.
-- **Acceptance:** sandbox end-to-end — a pending donation becomes `completed`
-  after a simulated callback; tampered callbacks are ignored.
+- **Spec:**
+  - `form()` — shows amount + name + email + (optional) phone fields, CSRF.
+  - `initiate()` — validates input, generates a unique `reference`
+    (`MYN-` + timestamp + 6 random hex), inserts a `donations` row
+    `status=pending`, calls `Paystack::initialize()`, redirects the donor to
+    `authorization_url`.
+  - `callback()` (`GET /donate/callback?reference=...`) — Paystack redirects
+    the donor here after payment. Re-verify via `Paystack::verify()`. If
+    `status === 'success'` AND the returned `amount` matches the stored
+    amount in minor units AND the currency matches, mark `completed`, set
+    `paid_at`, store `paystack_id` and `gateway_response`. Otherwise mark
+    `failed` (or leave `pending` if Paystack says `pending`). Render
+    `donate-thanks.twig`.
+  - `webhook()` (`POST /donate/webhook`) — read **raw** request body,
+    verify signature via `Paystack::verifyWebhookSignature()` with
+    `X-Paystack-Signature` header, then re-verify the transaction via the
+    API (defence in depth — never trust webhook amounts directly). Update
+    the row idempotently. Respond `200 OK` only after successful processing.
+- **Acceptance:** Paystack test mode end-to-end — a pending donation becomes
+  `completed` after either the redirect-callback OR the webhook fires; a
+  tampered webhook (wrong signature) is rejected with `400`.
 
 ### [ ] M5.3 — Donations ledger (admin)
 - **Files:** `Admin/DonationController.php` + template
-- **Spec:** list all donations with status, amount, receipt; filter by status;
-  date-range total.
+- **Spec:** list all donations with status, amount, currency, channel,
+  reference; filter by status; date-range total.
 - **Acceptance:** `/admin/donations` shows the M5.2 test transaction.
 
 ---
@@ -475,6 +505,6 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - All M0–M7 tasks `[x]`.
 - `php -S localhost:8000 -t public` serves the full site.
 - Public site is data-driven; admin panel manages every content type.
-- M-Pesa donations work end-to-end in sandbox.
+- Paystack donations work end-to-end in test mode.
 - Security checklist in `README.md` fully ticked.
 - WordPress content imported and all legacy URLs 301-redirected.
