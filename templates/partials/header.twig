@@ -1,15 +1,19 @@
 <header class="site-header">
   <div class="wrap nav">
-    <a href="/" class="brand">
-      <span class="mark">M</span>
-      <span>{{ site.name }}<small>Wote · Makueni County</small></span>
+    <a href="/" class="brand" aria-label="{{ site.name }} — home">
+      {% if site.logo %}
+        <img class="brand-logo" src="{{ site.logo }}" alt="{{ site.name }}" width="170" height="46" loading="lazy">
+      {% else %}
+        <span class="mark">M</span>
+        <span>{{ site.name }}<small>Wote · Makueni County</small></span>
+      {% endif %}
     </a>
     <ul class="menu">
       <li><a href="/programs" class="{{ current_path starts with '/programs' ? 'is-active' }}">Our Programs</a></li>
-      <li><a href="/about" class="{{ current_path == '/about' ? 'is-active' }}">Who We Are</a></li>
-      <li><a href="/impact" class="{{ current_path starts with '/impact' ? 'is-active' }}">Our Impact</a></li>
-      <li><a href="/events" class="{{ current_path starts with '/events' ? 'is-active' }}">Events</a></li>
-      <li><a href="/contact" class="{{ current_path == '/contact' ? 'is-active' }}">Contact</a></li>
+      <li><a href="/about"    class="{{ current_path == '/about'           ? 'is-active' }}">Who We Are</a></li>
+      <li><a href="/impact"   class="{{ current_path starts with '/impact' ? 'is-active' }}">Our Impact</a></li>
+      <li><a href="/events"   class="{{ current_path starts with '/events' ? 'is-active' }}">Events</a></li>
+      <li><a href="/contact"  class="{{ current_path == '/contact'         ? 'is-active' }}">Contact</a></li>
     </ul>
     <div class="nav-cta">
       <a href="/volunteer" class="btn btn-ghost">Volunteer</a>

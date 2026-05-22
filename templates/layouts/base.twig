@@ -9,7 +9,14 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="{% block og_title %}{{ block('title') }}{% endblock %}">
   <meta property="og:description" content="{% block og_description %}{{ block('meta_description') }}{% endblock %}">
+  {# Per-page templates may override og:image by defining the og_image block.
+     The default og:image is set above via the og_image_url block (site logo). #}
   {% block og_image %}{% endblock %}
+
+  <link rel="icon"             type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180"  href="/apple-touch-icon.png">
+
+  <meta property="og:image" content="{% block og_image_url %}{{ site.logo_square|default('/assets/img/logo-square.png') }}{% endblock %}">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

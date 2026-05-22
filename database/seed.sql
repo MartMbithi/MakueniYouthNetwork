@@ -169,6 +169,8 @@ INSERT INTO settings (setting_key, setting_value) VALUES
   ('email',    'info@makueniyouth.org'),
   ('address',  'Famo House, 2nd Flr, Rm 14, Behind Equity Bank, Wote Town'),
   ('po_box',   'P.O Box 405 – 90300, Wote, Makueni'),
-  ('facebook', 'https://www.facebook.com/MakueniYouthNetwork'),
-  ('twitter',  'https://twitter.com/MakueniYouth'),
-  ('linkedin', 'https://www.linkedin.com/company/makueni-youth-network');
+  ('facebook',    'https://www.facebook.com/MakueniYouthNetwork'),
+  ('twitter',     'https://twitter.com/MakueniYouth'),
+  ('linkedin',    'https://www.linkedin.com/company/makueni-youth-network'),
+  ('logo',        '/assets/img/logo.png'),
+  ('logo_square', '/assets/img/logo-square.png');

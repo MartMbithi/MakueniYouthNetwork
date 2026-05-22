@@ -215,15 +215,17 @@ final class View
     private static function loadSiteSettings(): array
     {
         $defaults = [
-            'name'      => 'Makueni Youth Network',
-            'tagline'   => 'Youth-owned. Youth-led. Youth-driven.',
-            'phone'     => '+254 710 580 604',
-            'email'     => 'info@makueniyouth.org',
-            'address'   => 'Famo House, 2nd Flr, Rm 14, Behind Equity Bank, Wote Town',
-            'po_box'    => 'P.O Box 405 – 90300, Wote, Makueni',
-            'facebook'  => '#',
-            'twitter'   => '#',
-            'linkedin'  => '#',
+            'name'        => 'Makueni Youth Network',
+            'tagline'     => 'Youth-owned. Youth-led. Youth-driven.',
+            'phone'       => '+254 710 580 604',
+            'email'       => 'info@makueniyouth.org',
+            'address'     => 'Famo House, 2nd Flr, Rm 14, Behind Equity Bank, Wote Town',
+            'po_box'      => 'P.O Box 405 – 90300, Wote, Makueni',
+            'facebook'    => '#',
+            'twitter'     => '#',
+            'linkedin'    => '#',
+            'logo'        => '/assets/img/logo.png',
+            'logo_square' => '/assets/img/logo-square.png',
         ];
 
         try {
@@ -232,7 +234,14 @@ final class View
             $rows = $stmt->fetchAll() ?: [];
             $kv = [];
             foreach ($rows as $r) {
-                $kv[(string) $r['setting_key']] = (string) ($r['setting_value'] ?? '');
+                $v = (string) ($r['setting_value'] ?? '');
+                // Treat empty stored values as "use the default" rather than
+                // overriding the default with an empty string. This lets an
+                // admin blank a field in the UI and get the baked-in fallback.
+                if ($v === '') {
+                    continue;
+                }
+                $kv[(string) $r['setting_key']] = $v;
             }
             return $kv + $defaults;
         } catch (PDOException | Throwable $e) {

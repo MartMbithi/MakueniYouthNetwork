@@ -143,6 +143,7 @@ final class SettingsController
     private const KEYS = [
         'name', 'tagline', 'phone', 'email', 'address', 'po_box',
         'facebook', 'twitter', 'linkedin',
+        'logo', 'logo_square',
     ];
 
     public function edit(): string

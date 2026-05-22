@@ -2,7 +2,11 @@
   <div class="wrap">
     <div class="foot-grid">
       <div>
-        <div class="brand"><span class="mark">M</span><span>{{ site.name }}</span></div>
+        {% if site.logo %}
+          <div class="brand-logo-light"><img src="{{ site.logo }}" alt="{{ site.name }}" width="200" height="54" loading="lazy"></div>
+        {% else %}
+          <div class="brand"><span class="mark">M</span><span>{{ site.name }}</span></div>
+        {% endif %}
         <p class="foot-about">A youth-led organization empowering young people in Makueni County to lead change in social, economic, education and political life.</p>
         <div class="socials">
           <a href="{{ site.facebook|default('#') }}" aria-label="Facebook">f</a>

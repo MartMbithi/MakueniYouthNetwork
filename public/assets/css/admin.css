@@ -32,6 +32,11 @@ aside.admin-sidebar {
 }
 .admin-brand b { color: #fff; font-family: 'Fraunces',serif; font-size: 1.05rem }
 .admin-brand small { display: block; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: rgba(246,241,228,.6) }
+.admin-brand-logo {
+  display: block; width: 100%; background: var(--admin-bg); padding: 8px 10px;
+  border-radius: 10px;
+}
+.admin-brand-logo img { display: block; width: 100%; height: auto; max-height: 44px; object-fit: contain }
 
 .admin-nav { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; flex: 1 }
 .admin-nav .nav-section { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(246,241,228,.5); margin: 16px 0 6px; padding-left: 8px }
@@ -126,3 +131,5 @@ body.admin-login { background: linear-gradient(135deg, #173d2e 0%, #1f5340 100%)
 .login-card { background: #fff; border-radius: 18px; padding: 40px 36px; width: 100%; max-width: 420px; box-shadow: 0 40px 80px -30px rgba(0,0,0,.5) }
 .login-card h1 { font-family: 'Fraunces',serif; font-weight: 600; font-size: 1.6rem; margin-bottom: 6px }
 .login-card .lead { color: var(--admin-muted); font-size: .92rem; margin-bottom: 24px }
+.login-brand { text-align: center; margin-bottom: 22px }
+.login-brand img { max-width: 220px; height: auto; display: inline-block }
