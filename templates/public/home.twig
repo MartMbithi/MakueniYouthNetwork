@@ -1,0 +1,233 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}{{ site.name }}{% endblock %}
+{% block meta_description %}Youth-led civic engagement, leadership and education across Makueni County since 2014.{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy reveal">
+      <span class="eyebrow">A movement since 2014</span>
+      <h1>Young people, <em>leading</em> the change <span class="ul">Makueni</span> deserves.</h1>
+      <p class="lead">We mobilize, collaborate, empower and transform youth to take their rightful place in decision-making — across governance, education and enterprise.</p>
+      <div class="hero-actions">
+        <a href="/programs" class="btn btn-green">Explore our programs</a>
+        <a href="/volunteer" class="btn btn-ghost">Join the network</a>
+      </div>
+      <div class="hero-tags">
+        <span class="tag"><b>Youth-owned.</b></span>
+        <span class="tag"><b>Youth-led.</b></span>
+        <span class="tag"><b>Youth-driven.</b></span>
+      </div>
+    </div>
+    <div class="hero-visual reveal">
+      <div class="hero-dots"></div>
+      <div class="hero-photo">
+        <img src="https://makueniyouth.org/wp-content/uploads/2025/05/Makueni_Youths.png" alt="Makueni youth in a civic engagement forum" loading="lazy">
+      </div>
+      <div class="hero-badge">
+        <div class="n">10+</div>
+        <p>years building youth voice &amp; leadership in the county</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="stripe">
+  <div class="wrap stats">
+    {% set _stats = stats|default([
+      {'value': '2014',  'label': 'Founded as a community-based organization'},
+      {'value': '3',     'label': 'Flagship programs across the county'},
+      {'value': '6+',    'label': 'Partner institutions & funders'},
+      {'value': '1000s', 'label': 'Young people reached & mobilized'}
+    ]) %}
+    {% for stat in _stats %}
+      <div class="stat reveal"><div class="n">{{ stat.value }}</div><p>{{ stat.label }}</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<section class="pad" id="programs">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Our Programs</span>
+      <h2>Three ways we turn youth potential into power.</h2>
+      <p>Each program confronts a systemic barrier — and replaces it with skills, voice, and opportunity.</p>
+    </div>
+
+    {% set _programs = programs|default([
+      {
+        'title': 'Advocacy & Civic Engagement',
+        'slug':  'advocacy-civic-engagement',
+        'summary': 'We equip young people with civic knowledge and confidence to shape county planning, budgets and policy — and to hold leaders accountable.',
+        'cover_image': 'https://makueniyouth.org/wp-content/uploads/2025/06/Advocacy.png'
+      },
+      {
+        'title': 'Leadership & Talent Development',
+        'slug':  'leadership-talent-development',
+        'summary': 'Structured training and mentorship that nurtures confident, values-driven leaders ready to take up roles in their communities.',
+        'cover_image': 'https://makueniyouth.org/wp-content/uploads/2025/05/talent.jpg'
+      },
+      {
+        'title': 'Education & Capacity Enhancement',
+        'slug':  'education-capacity-enhancement',
+        'summary': 'We assess learning outcomes and gender gaps, then turn evidence into action — lobbying duty bearers for responsive policy and budgets.',
+        'cover_image': 'https://makueniyouth.org/wp-content/uploads/2025/05/Educational.jpg'
+      }
+    ]) %}
+
+    <div class="prog-grid">
+      {% for prog in _programs %}
+        <article class="prog reveal">
+          <div class="prog-img">
+            <span class="prog-num">{{ '%02d'|format(loop.index) }}</span>
+            <img src="{{ prog.cover_image }}" alt="{{ prog.title }}" loading="lazy">
+          </div>
+          <div class="prog-body">
+            <h3>{{ prog.title }}</h3>
+            <p>{{ prog.summary }}</p>
+            <a href="/programs/{{ prog.slug }}" class="prog-link">Explore program <span>→</span></a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="pad about" id="about">
+  <div class="wrap about-grid">
+    <div class="about-visual reveal">
+      <div class="frame">
+        <img src="https://makueniyouth.org/wp-content/uploads/2025/05/Makueni-Youths.png" alt="Makueni Youth Network members" loading="lazy">
+      </div>
+      <div class="est"><b>10+</b><small>Years strong</small></div>
+    </div>
+    <div class="about-text reveal">
+      <span class="eyebrow">Who We Are</span>
+      <h2>A youth-led movement confronting systemic barriers.</h2>
+      <p>Makueni Youth Network CBO was founded in 2014 to build a movement of young people committed to driving positive change across social, educational, political and economic spaces.</p>
+      <p>We believe young people are transformative leaders. Our mission is to mobilize, collaborate, empower and transform youth to actively engage in decision-making — increasing representation and grassroots civic action.</p>
+      <div class="vm-grid">
+        <div class="vm">
+          <div class="ic">🌅</div>
+          <h4>Our Vision</h4>
+          <p>A just community where young people enjoy dignified lives.</p>
+        </div>
+        <div class="vm">
+          <div class="ic">🎯</div>
+          <h4>Our Mission</h4>
+          <p>To enhance the purpose, rights and talents of young people as active citizens and agents of change.</p>
+        </div>
+      </div>
+      <div class="values">
+        <span>Collaborate</span><span>Empower</span><span>Transform</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="news">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Our Impact</span>
+      <h2>News, stories &amp; the change we are making.</h2>
+    </div>
+
+    {% set _posts = posts|default([
+      {
+        'title': 'Bridging the Gap: Youth Leading Change in Governance & Accountability',
+        'slug':  'bridging-the-gap-youth-leading-change-in-governance',
+        'excerpt': 'How the Makueni Youth initiative is driving inclusive governance by bringing marginalized voices into county decision-making spaces.',
+        'cover_image': 'https://makueniyouth.org/wp-content/uploads/2026/05/Youth-Gov-300x224.webp',
+        'category_name': 'Governance',
+        'published_at': '2026-05-28 09:00:00'
+      },
+      {
+        'title': 'Empowering Youth: Advocating for Rights & Sustainable Futures',
+        'slug':  'empowering-youth-advocating-for-rights',
+        'excerpt': null,
+        'cover_image': 'https://makueniyouth.org/wp-content/uploads/2026/05/Makueni4-300x200.jpg',
+        'category_name': 'Advocacy',
+        'published_at': '2026-05-28 09:00:00'
+      },
+      {
+        'title': 'Bridging Gaps Through Education, Knowledge & Research',
+        'slug':  'bridging-gaps-through-education',
+        'excerpt': null,
+        'cover_image': 'https://makueniyouth.org/wp-content/uploads/2026/05/MAkueni-Y-300x200.jpg',
+        'category_name': 'Education',
+        'published_at': '2026-05-28 09:00:00'
+      }
+    ]) %}
+
+    <div class="news-grid">
+      {% for post in _posts %}
+        {% set _date = post.published_at|date('d') %}
+        {% set _month = post.published_at|date('M') %}
+        <article class="news {{ loop.first ? 'feature' : '' }} reveal">
+          <div class="news-img">
+            <span class="news-date"><b>{{ _date }}</b><small>{{ _month }}</small></span>
+            <img src="{{ post.cover_image }}" alt="{{ post.title }}" loading="lazy">
+          </div>
+          <div class="news-body">
+            <span class="news-cat">{{ post.category_name|default('News') }}</span>
+            <h3>{{ post.title }}</h3>
+            {% if loop.first and post.excerpt %}
+              <p>{{ post.excerpt }}</p>
+            {% endif %}
+            <a href="/impact/{{ post.slug }}" class="news-more">Read story →</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="pad partners">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Trusted Partners</span>
+      <h2>We don't do this alone.</h2>
+    </div>
+
+    {% set _partners = partners|default([
+      {'name': 'KCDF', 'logo': null, 'url': null},
+      {'name': 'Usawa Agenda', 'logo': null, 'url': null},
+      {'name': 'Zizi Afrique', 'logo': null, 'url': null},
+      {'name': 'Africa Voices', 'logo': null, 'url': null},
+      {'name': 'Poverty Eradication Network', 'logo': null, 'url': null},
+      {'name': 'EYC', 'logo': null, 'url': null}
+    ]) %}
+
+    <div class="logos">
+      {% for p in _partners %}
+        {% if p.url %}<a href="{{ p.url }}" class="logo-chip reveal" target="_blank" rel="noopener">{% else %}<div class="logo-chip reveal">{% endif %}
+          {% if p.logo %}
+            <img src="{{ p.logo }}" alt="{{ p.name }}">
+          {% else %}
+            {{ p.name }}
+          {% endif %}
+        {% if p.url %}</a>{% else %}</div>{% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="get-involved">
+  <div class="wrap">
+    <div class="cta reveal" id="cta">
+      <div>
+        <span class="eyebrow" style="color:var(--cream)">Get Involved</span>
+        <h2>Your support keeps youth at the decision table.</h2>
+        <p>Donate, volunteer your time, or partner with us. Every contribution funds civic training, mentorship and advocacy across Makueni County.</p>
+      </div>
+      <div class="cta-actions">
+        <a href="/donate" class="btn btn-light">Donate now</a>
+        <a href="/volunteer" class="btn btn-amber">Volunteer with us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

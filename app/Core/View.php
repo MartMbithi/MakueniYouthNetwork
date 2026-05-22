@@ -130,16 +130,132 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Auth;
+namespace App\Core;
 
-/** @var \App\Core\Router $router */
+use PDOException;
+use Throwable;
+use Twig\Environment;
+use Twig\Extension\DebugExtension;
+use Twig\Loader\FilesystemLoader;
+use Twig\TwigFunction;
 
-$router->get('/admin/login', static function (): string {
-    return '<form method="post" action="/admin/login"><h1>Admin login</h1>'
-        . '<p>Login UI ships in M4.1.</p></form>';
-});
+final class View
+{
+    private static ?Environment $twig = null;
 
-$router->get('/admin', static function (): string {
-    Auth::requireLogin();
-    return '<h1>Admin dashboard</h1><p>Coming in M4.2.</p>';
-});
+    /** @var array<string,mixed> */
+    private static array $globals = [];
+
+    private static bool $debug = false;
+
+    public static function configure(string $templatesDir, bool $debug = false): void
+    {
+        $loader = new FilesystemLoader($templatesDir);
+        $env = new Environment($loader, [
+            'cache'            => false,
+            'debug'            => $debug,
+            'strict_variables' => false,
+            'autoescape'       => 'html',
+        ]);
+
+        if ($debug) {
+            $env->addExtension(new DebugExtension());
+        }
+
+        $env->addFunction(new TwigFunction(
+            'csrf_field',
+            static fn (): string => Csrf::field(),
+            ['is_safe' => ['html']]
+        ));
+        $env->addFunction(new TwigFunction(
+            'csrf_token',
+            static fn (): string => Csrf::token()
+        ));
+        $env->addFunction(new TwigFunction(
+            'asset',
+            static fn (string $path): string => '/assets/' . ltrim($path, '/')
+        ));
+
+        self::$twig = $env;
+        self::$debug = $debug;
+    }
+
+    /** @param array<string,mixed> $globals */
+    public static function setGlobals(array $globals): void
+    {
+        self::$globals = $globals + self::$globals;
+    }
+
+    public static function share(string $key, mixed $value): void
+    {
+        self::$globals[$key] = $value;
+    }
+
+    /** @param array<string,mixed> $data */
+    public static function render(string $template, array $data = []): string
+    {
+        if (self::$twig === null) {
+            throw new \RuntimeException('View::configure() was never called.');
+        }
+
+        $base = [
+            'site'         => self::loadSiteSettings(),
+            'current_path' => Request::path(),
+            'csrf'         => Csrf::token(),
+            'auth'         => Auth::check() ? Auth::user() : null,
+            'flash'        => self::pullFlashes(),
+            'now'          => date('Y-m-d H:i:s'),
+            'year'         => (int) date('Y'),
+        ] + self::$globals;
+
+        return self::$twig->render($template, $data + $base);
+    }
+
+    /** @return array<string,string> */
+    private static function loadSiteSettings(): array
+    {
+        $defaults = [
+            'name'      => 'Makueni Youth Network',
+            'tagline'   => 'Youth-owned. Youth-led. Youth-driven.',
+            'phone'     => '+254 710 580 604',
+            'email'     => 'info@makueniyouth.org',
+            'address'   => 'Famo House, 2nd Flr, Rm 14, Behind Equity Bank, Wote Town',
+            'po_box'    => 'P.O Box 405 – 90300, Wote, Makueni',
+            'facebook'  => '#',
+            'twitter'   => '#',
+            'linkedin'  => '#',
+        ];
+
+        try {
+            $pdo = Database::connection();
+            $stmt = $pdo->query('SELECT setting_key, setting_value FROM settings');
+            $rows = $stmt->fetchAll() ?: [];
+            $kv = [];
+            foreach ($rows as $r) {
+                $kv[(string) $r['setting_key']] = (string) ($r['setting_value'] ?? '');
+            }
+            return $kv + $defaults;
+        } catch (PDOException | Throwable $e) {
+            return $defaults;
+        }
+    }
+
+    /** @return array<int,array{type:string,message:string}> */
+    private static function pullFlashes(): array
+    {
+        $flashes = $_SESSION['_flash'] ?? [];
+        unset($_SESSION['_flash']);
+        if (!is_array($flashes)) {
+            return [];
+        }
+        return $flashes;
+    }
+
+    public static function flash(string $message, string $type = 'success'): void
+    {
+        if (!isset($_SESSION['_flash']) || !is_array($_SESSION['_flash'])) {
+            $_SESSION['_flash'] = [];
+        }
+        $_SESSION['_flash'][] = ['type' => $type, 'message' => $message];
+    }
+}

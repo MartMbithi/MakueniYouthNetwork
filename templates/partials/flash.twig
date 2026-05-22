@@ -1,0 +1,7 @@
+{% if flash is defined and flash is not empty %}
+<div class="flash-rail">
+  {% for f in flash %}
+    <div class="flash {{ f.type|default('info') }}">{{ f.message }}</div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -130,6 +130,8 @@ declare(strict_types=1);
  *
  */
 
+use App\Core\View;
+
 /** @var \App\Core\Router $router */
 
-$router->get('/', static fn (): string => 'OK');
+$router->get('/', static fn (): string => View::render('public/home.twig'));

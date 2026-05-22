@@ -1,0 +1,22 @@
+{% extends 'layouts/base.twig' %}
+
+{% block title %}Server error{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">500</span>
+    <h1>Something went sideways on our end.</h1>
+    <p>We've logged the error and someone will look at it. Try again in a moment.</p>
+    {% if debug and error is not null %}
+      <pre style="margin-top:24px;background:#fff;border:1px solid var(--line);padding:16px;border-radius:10px;overflow:auto;font-size:.82rem">{{ error.message }}
+{{ error.file }}:{{ error.line }}
+
+{{ error.traceAsString }}</pre>
+    {% endif %}
+    <div class="hero-actions" style="margin-top:30px">
+      <a href="/" class="btn btn-green">Back to home</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -130,7 +130,10 @@ declare(strict_types=1);
  *
  */
 
+use App\Core\Database;
+use App\Core\Response;
 use App\Core\Router;
+use App\Core\View;
 
 $rootDir = dirname(__DIR__);
 
@@ -146,18 +149,13 @@ ini_set('display_errors', $isLocal ? '1' : '0');
 ini_set('log_errors', '1');
 ini_set('error_log', $rootDir . '/storage/logs/app.log');
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal, $rootDir): void {
+Database::configure($config['db']);
+View::configure($rootDir . '/templates', $isLocal);
+
+set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
     error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
         . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    http_response_code(500);
-    header('Content-Type: text/plain; charset=utf-8');
-    if ($isLocal) {
-        echo $e::class . ': ' . $e->getMessage() . PHP_EOL
-            . $e->getFile() . ':' . $e->getLine() . PHP_EOL
-            . $e->getTraceAsString();
-    } else {
-        echo 'Server error';
-    }
+    Response::serverError($e, $isLocal);
 });
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
