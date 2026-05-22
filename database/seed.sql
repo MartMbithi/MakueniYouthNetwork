@@ -44,19 +44,19 @@ INSERT INTO programs (id, parent_id, slug, title, summary, body, cover_image, so
    'Advocacy & Civic Engagement',
    'We equip young people with civic knowledge and confidence to shape county planning, budgets and policy — and to hold leaders accountable.',
    '<p>Our Advocacy &amp; Civic Engagement program builds the next generation of civic-minded leaders across Makueni County. Through training forums, county budget reviews and policy workshops, we help young people translate everyday frustrations into evidence-backed advocacy.</p><p>We partner with ward administrators, sub-county offices and CSOs to make sure youth voices are not just heard, but acted on.</p>',
-   'https://makueniyouth.org/wp-content/uploads/2025/06/Advocacy.png', 10, 'published'),
+   NULL, 10, 'published'),
 
   (2, NULL, 'leadership-talent-development',
    'Leadership & Talent Development',
    'Structured training and mentorship that nurtures confident, values-driven leaders ready to take up roles in their communities.',
    '<p>The Leadership &amp; Talent Development program is a structured pathway: from school clubs and ward youth associations into county-level forums and beyond. We run mentorship circles, public-speaking labs and project-based leadership challenges.</p>',
-   'https://makueniyouth.org/wp-content/uploads/2025/05/talent.jpg', 20, 'published'),
+   NULL, 20, 'published'),
 
   (3, NULL, 'education-capacity-enhancement',
    'Education & Capacity Enhancement',
    'We assess learning outcomes and gender gaps, then turn evidence into action — lobbying duty bearers for responsive policy and budgets.',
    '<p>We run county-wide Foundational Literacy &amp; Numeracy Assessments in partnership with Usawa Agenda and Zizi Afrique. The data fuels our policy briefs to the county education department.</p>',
-   'https://makueniyouth.org/wp-content/uploads/2025/05/Educational.jpg', 30, 'published'),
+   NULL, 30, 'published'),
 
   -- Children of Education & Capacity Enhancement
   (4, 3, 'foundational-literacy-numeracy-assessment',
@@ -87,21 +87,21 @@ INSERT INTO posts (slug, title, excerpt, body, cover_image, category_id, author_
    'Bridging the Gap: Youth Leading Change in Governance & Accountability',
    'How the Makueni Youth initiative is driving inclusive governance by bringing marginalized voices into county decision-making spaces.',
    '<p>For too long, county budget hearings in Makueni were attended by a familiar cast of faces — none of them young. This year that changed.</p><p>Through our Advocacy &amp; Civic Engagement program, we trained 120 youth representatives across the ten sub-counties on the County Government Act, the Public Finance Management Act and the participation guidelines. They showed up. They asked sharp questions. They submitted memos that ended up cited in the final appropriations report.</p>',
-   'https://makueniyouth.org/wp-content/uploads/2026/05/Youth-Gov-300x224.webp',
+   NULL,
    1, 1, 'published', '2026-05-20 09:00:00'),
 
   ('empowering-youth-advocating-for-rights',
    'Empowering Youth: Advocating for Rights & Sustainable Futures',
    'A network of trained youth advocates is reshaping how Makueni County engages its young population on land, livelihoods and the climate transition.',
    '<p>Our 2026 cohort of youth advocates concluded a six-month curriculum on rights-based advocacy — covering land tenure, climate adaptation finance and digital rights.</p>',
-   'https://makueniyouth.org/wp-content/uploads/2026/05/Makueni4-300x200.jpg',
+   NULL,
    2, 1, 'published', '2026-05-19 09:30:00'),
 
   ('bridging-gaps-through-education',
    'Bridging Gaps Through Education, Knowledge & Research',
    'Findings from our Foundational Literacy and Numeracy Assessment are driving real-time policy conversations at the county Department of Education.',
    '<p>This year''s FLNA covered 4,200 households across all ten sub-counties. The headline finding: only 38% of Grade 4 learners could read a Grade 2 story fluently. The county''s response — a remedial reading clinic pilot in three wards — was directly informed by our brief.</p>',
-   'https://makueniyouth.org/wp-content/uploads/2026/05/MAkueni-Y-300x200.jpg',
+   NULL,
    3, 1, 'published', '2026-05-15 10:00:00'),
 
   ('youth-mentorship-cohort-2026-launch',

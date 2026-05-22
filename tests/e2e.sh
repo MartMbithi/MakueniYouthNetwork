@@ -114,7 +114,7 @@ check_match "homepage shows email"         'info@makueniyouth.org' "$HOME"
 check_match "homepage <title>" "<title>Makueni Youth Network" "$HOME"
 POST_HTML=$(curl -s "$HOST/impact/bridging-the-gap-how-makueni-youth-initiative-is-driving-inclusive-governance")
 echo "$POST_HTML" | grep -qE 'og:title"[[:space:]]*content="Bridging the Gap'        && APTITLE="yes" || APTITLE="no"
-echo "$POST_HTML" | grep -qE 'og:image"[[:space:]]*content="https://makueniyouth\.org' && APIMG="yes"    || APIMG="no"
+echo "$POST_HTML" | grep -qE 'og:image"[[:space:]]*content="(https?://[^"]+|/uploads/)' && APIMG="yes" || APIMG="no"
 check "post detail per-page og:title" "yes" "$APTITLE"
 check "post detail per-page og:image" "yes" "$APIMG"
 

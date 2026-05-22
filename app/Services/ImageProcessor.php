@@ -136,10 +136,26 @@ use RuntimeException;
 
 final class ImageProcessor
 {
-    private const ALLOWED_EXT  = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+    private const ALLOWED_EXT  = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'avif', 'pdf'];
     private const ALLOWED_MIME = [
-        'image/jpeg', 'image/png', 'image/webp', 'application/pdf',
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+        'image/svg+xml', 'image/avif',
+        'application/pdf',
     ];
+
+    /**
+     * MIME types we store as-is without trying to decode/resize/re-encode.
+     * Either GD cannot read them in this build (avif, webp without libwebp,
+     * gif animated), or they are vector / non-bitmap (svg, pdf) and there's
+     * nothing to resize.
+     */
+    private const PASSTHROUGH_MIME = [
+        'application/pdf' => 'pdf',
+        'image/gif'       => 'gif',
+        'image/svg+xml'   => 'svg',
+        'image/avif'      => 'avif',
+    ];
+
     private const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
     private const MAX_WIDTH = 1600;
 
@@ -194,14 +210,32 @@ final class ImageProcessor
             throw new RuntimeException('File MIME did not match an allowed type.');
         }
 
-        $isPdf   = ($mime === 'application/pdf');
         $newBase = substr(bin2hex(random_bytes(12)), 0, 20);
 
-        if ($isPdf) {
-            $newName = $newBase . '.pdf';
+        // Pass-through for formats we can't (or shouldn't) re-encode.
+        // WebP also gets pass-through when libwebp isn't compiled into GD —
+        // we can't read it without imagecreatefromwebp().
+        $passthroughExt = self::PASSTHROUGH_MIME[$mime] ?? null;
+        if ($passthroughExt === null && $mime === 'image/webp' && !function_exists('imagecreatefromwebp')) {
+            $passthroughExt = 'webp';
+        }
+        if ($passthroughExt !== null) {
+            $newName = $newBase . '.' . $passthroughExt;
             $newPath = self::$uploadDir . $newName;
-            if (!move_uploaded_file($tmp, $newPath) && !rename($tmp, $newPath)) {
-                throw new RuntimeException('Could not save file.');
+            // SVG: read + re-write through a tiny sanitizer (strip <script>, on-attrs,
+            // and javascript: URLs) so a user-supplied SVG can't carry script.
+            if ($mime === 'image/svg+xml') {
+                $svg = (string) file_get_contents($tmp);
+                $svg = self::sanitizeSvg($svg);
+                file_put_contents($newPath, $svg);
+                @unlink($tmp);
+            } else {
+                if (!move_uploaded_file($tmp, $newPath) && !rename($tmp, $newPath)) {
+                    if (!copy($tmp, $newPath)) {
+                        throw new RuntimeException('Could not save file.');
+                    }
+                    @unlink($tmp);
+                }
             }
             return self::$publicPrefix . $newName;
         }
@@ -258,6 +292,21 @@ final class ImageProcessor
         imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $w, $h);
         imagedestroy($src);
         return $dst;
+    }
+
+    /**
+     * Conservative SVG sanitizer for stored vector logos. Removes <script>
+     * elements, any on* event attributes, and javascript: URL references.
+     * Returns the cleaned SVG source.
+     */
+    private static function sanitizeSvg(string $svg): string
+    {
+        $svg = preg_replace('#<\?xml[^?]*\?>#', '<?xml version="1.0" encoding="UTF-8"?>', $svg, 1) ?? $svg;
+        $svg = preg_replace('#<!DOCTYPE[^>]*>#i', '', $svg) ?? $svg;
+        $svg = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $svg) ?? $svg;
+        $svg = preg_replace('#\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\')#i', '', $svg) ?? $svg;
+        $svg = preg_replace('#(href|xlink:href)\s*=\s*(["\'])\s*javascript:[^"\']*\2#i', '$1=$2#$2', $svg) ?? $svg;
+        return $svg;
     }
 
     private static function uploadErrorMessage(int $code): string

@@ -32,14 +32,16 @@ ServerSignature Off
     Header set Cross-Origin-Opener-Policy "same-origin"
     Header set Cross-Origin-Resource-Policy "same-site"
 
-    # Content-Security-Policy: tight default, with explicit allow-lists for
-    # the three external origins we actually use (Google Fonts, Paystack
-    # checkout redirect, the legacy WP images we have not yet rehosted).
+    # Content-Security-Policy: tight default. The only external origins we
+    # touch are Google Fonts (CSS + woff2) and Paystack (checkout iframe +
+    # API). Everything else — every image, every script — must be 'self'.
+    # makueniyouth.org is intentionally NOT in the allow-list: the legacy WP
+    # site is being decommissioned and all content has been rehosted locally.
     Header set Content-Security-Policy "default-src 'self'; \
         script-src 'self' 'unsafe-inline' https://js.paystack.co; \
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
         font-src 'self' https://fonts.gstatic.com data:; \
-        img-src 'self' data: https://makueniyouth.org https://*.paystack.co; \
+        img-src 'self' data: https://*.paystack.co; \
         connect-src 'self' https://api.paystack.co; \
         frame-src https://checkout.paystack.com; \
         form-action 'self' https://checkout.paystack.com; \

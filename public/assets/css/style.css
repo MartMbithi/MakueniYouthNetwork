@@ -237,13 +237,16 @@ section.pad{padding:104px 0}
 .partners .eyebrow{color:var(--amber)}
 .logos{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-top:10px}
 .logo-chip{
-  background:rgba(246,241,228,.07);border:1px solid rgba(246,241,228,.16);
+  background:var(--cream);border:1px solid rgba(246,241,228,.18);
   border-radius:14px;aspect-ratio:5/3;display:grid;place-items:center;
-  padding:14px;font-weight:600;font-size:.78rem;text-align:center;
-  color:rgba(246,241,228,.7);transition:background .2s,color .2s;
+  padding:14px;font-weight:600;font-size:.86rem;text-align:center;
+  color:var(--brand);transition:transform .2s,box-shadow .2s;
 }
-.logo-chip:hover{background:rgba(246,241,228,.13);color:var(--cream)}
-.logo-chip img{max-width:100%;max-height:60%;object-fit:contain;filter:brightness(0) invert(1);opacity:.85}
+.logo-chip:hover{transform:translateY(-3px);box-shadow:0 14px 28px -16px rgba(0,0,0,.4)}
+.logo-chip img{
+  max-width:100%;max-height:80%;width:auto;height:auto;
+  object-fit:contain;display:block;
+}
 
 /* ---------- CTA BAND ---------- */
 .cta{
