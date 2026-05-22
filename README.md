@@ -29,6 +29,20 @@ php -S localhost:8000 -t public
 
 Browse to <http://localhost:8000/>.
 
+### First admin login
+
+After running `seed.sql`:
+
+| Field | Value |
+|---|---|
+| URL | <http://localhost:8000/admin/login> |
+| Email | `admin@makueniyouth.org` |
+| Password | `ChangeMe2026!` |
+
+**Change the password immediately after first sign-in.** The plaintext above
+exists only so a fresh deployment can get into the admin panel; a password
+rotation flow ships with M4.7.
+
 ## Project layout
 
 See `CLAUDE.md` §4 — every directory has a defined purpose, and the public web
