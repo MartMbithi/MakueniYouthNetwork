@@ -62,6 +62,14 @@ signature check.
 This project ships as a normal PHP application — no build step, no node, no
 container required.
 
+**For cPanel shared hosting** (Truehost, HostPinnacle, Sasahost, BlueHost,
+Namecheap, Hostinger…) — read **[`docs/cpanel-deploy.md`](docs/cpanel-deploy.md)**.
+It walks the full path from `scripts/build-deploy.sh` on your laptop through
+File Manager + MySQL Databases + MultiPHP Manager + AutoSSL to a verified
+production site, plus nightly backups via Cron Jobs. ~45 min the first time.
+
+**For a self-managed VPS / dedicated server:**
+
 1. **Provision** — PHP 8.2+, MariaDB 10.4+/MySQL 8+, Apache with `mod_rewrite`,
    `mod_headers`, `mod_deflate`, `mod_expires`. Optional: `libwebp` so
    `ImageProcessor` writes WebP instead of JPEG.
