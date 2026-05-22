@@ -84,6 +84,11 @@ makueniyouth/
 ## 5. Coding conventions
 
 - **PSR-12** formatting. `declare(strict_types=1);` at the top of every PHP file.
+- **Mandatory letterhead.** Every PHP source file must carry the MBITHI
+  letterhead banner from `docs/letterhead-banner.txt`, inserted **after**
+  `declare(strict_types=1);` and **before** the namespace declaration. Do not
+  alter the banner text. Update the `Conjured Upon This Day, …` date only when
+  the file is freshly created — once a file has a banner, leave the date alone.
 - **Namespaces:** `App\Core`, `App\Controllers`, `App\Models`, `App\Services`.
   PSR-4 autoload via Composer: `"App\\": "app/"`.
 - **Database access:** `PDO` with **prepared statements only**. Never concatenate
