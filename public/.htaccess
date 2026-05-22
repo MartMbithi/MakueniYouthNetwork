@@ -14,18 +14,48 @@ RewriteCond %{HTTP_HOST} !^127\.0\.0\.1(:[0-9]+)?$
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
 # -------------------------------------------------------------------------
-# Security headers (M7.2)
+# Hide stack identifiers (defence in depth — don't volunteer "Apache/2.4.x
+# (Unix) PHP/8.2" to attackers via the Server header)
+# -------------------------------------------------------------------------
+ServerSignature Off
+
+# -------------------------------------------------------------------------
+# Security headers
 # -------------------------------------------------------------------------
 <IfModule mod_headers.c>
+    Header unset X-Powered-By
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "0"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
-    Header set Permissions-Policy "geolocation=(), camera=(), microphone=()"
+    Header set Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=(self)"
+    Header set Cross-Origin-Opener-Policy "same-origin"
+    Header set Cross-Origin-Resource-Policy "same-site"
+
+    # Content-Security-Policy: tight default, with explicit allow-lists for
+    # the three external origins we actually use (Google Fonts, Paystack
+    # checkout redirect, the legacy WP images we have not yet rehosted).
+    Header set Content-Security-Policy "default-src 'self'; \
+        script-src 'self' 'unsafe-inline' https://js.paystack.co; \
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
+        font-src 'self' https://fonts.gstatic.com data:; \
+        img-src 'self' data: https://makueniyouth.org https://*.paystack.co; \
+        connect-src 'self' https://api.paystack.co; \
+        frame-src https://checkout.paystack.com; \
+        form-action 'self' https://checkout.paystack.com; \
+        frame-ancestors 'self'; \
+        base-uri 'self'; \
+        object-src 'none'; \
+        upgrade-insecure-requests"
+
     # HSTS only when we are already on HTTPS, never plain HTTP.
     <If "%{HTTPS} == 'on'">
-        Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     </If>
 </IfModule>
+
+# Disable directory listing
+Options -Indexes -MultiViews
 
 # -------------------------------------------------------------------------
 # Gzip (M7.3)
@@ -100,3 +130,18 @@ RewriteRule ^ index.php [QSA,L]
 
 # Block direct access to dotfiles
 RewriteRule (^|/)\. - [F]
+
+# =========================================================================
+# Lock down /uploads — never serve executables, even if smuggled in.
+# This is belt-and-braces: ImageProcessor already validates extension +
+# MIME and renames the file to a random hex name, but a misconfigured
+# host or a future bug shouldn't be able to execute anything from here.
+# =========================================================================
+<Directory "uploads">
+    <FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|phar|pl|py|cgi|asp|aspx|jsp|sh|bash|exe|dll|htaccess|htpasswd)$">
+        Require all denied
+    </FilesMatch>
+    php_flag engine off
+    Options -ExecCGI -Indexes
+    AddType text/plain .html .htm .shtml
+</Directory>

@@ -3,26 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0168bc">
+  <meta name="robots" content="{% block robots %}index,follow{% endblock %}">
+
   <title>{% block title %}{{ site.name }}{% endblock %} — {{ site.tagline }}</title>
   <meta name="description" content="{% block meta_description %}{{ site.tagline }}{% endblock %}">
 
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="{% block og_title %}{{ block('title') }}{% endblock %}">
+  {# Canonical — each page should resolve to one URL. Per-page templates
+     can override the `canonical_path` block when the page has its own slug. #}
+  {% set _origin = (app_url|default('')|trim != '') ? app_url|trim('/') : '' %}
+  <link rel="canonical" href="{{ _origin }}{% block canonical_path %}{{ current_path }}{% endblock %}">
+
+  {# Open Graph / Twitter Card #}
+  <meta property="og:type"        content="{% block og_type %}website{% endblock %}">
+  <meta property="og:site_name"   content="{{ site.name }}">
+  <meta property="og:locale"      content="en_KE">
+  <meta property="og:title"       content="{% block og_title %}{{ block('title') }}{% endblock %}">
   <meta property="og:description" content="{% block og_description %}{{ block('meta_description') }}{% endblock %}">
-  {# Per-page templates may override og:image by defining the og_image block.
-     The default og:image is set above via the og_image_url block (site logo). #}
+  <meta property="og:url"         content="{{ _origin }}{{ current_path }}">
+  <meta property="og:image"       content="{% block og_image_url %}{{ site.logo_square|default('/assets/img/logo-square.png') }}{% endblock %}">
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="{{ block('og_title') }}">
+  <meta name="twitter:description" content="{{ block('og_description') }}">
+  <meta name="twitter:image"       content="{{ block('og_image_url') }}">
+
+  {# Per-page templates may emit extra <meta property="og:image"> tags
+     and per-page article-specific tags here. #}
   {% block og_image %}{% endblock %}
+  {% block head_meta %}{% endblock %}
 
   <link rel="icon"             type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" sizes="180x180"  href="/apple-touch-icon.png">
-
-  <meta property="og:image" content="{% block og_image_url %}{{ site.logo_square|default('/assets/img/logo-square.png') }}{% endblock %}">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+
+  {# Organization JSON-LD — always present so search engines pick up the
+     org name + logo + social profiles across every page. #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NGO",
+    "name": "{{ site.name|escape('js') }}",
+    "url":  "{{ _origin }}/",
+    "logo": "{{ _origin }}{{ site.logo_square|default('/assets/img/logo-square.png') }}",
+    "address": { "@type": "PostalAddress",
+                 "streetAddress": "{{ site.address|escape('js') }}",
+                 "addressLocality": "Wote",
+                 "addressRegion": "Makueni County",
+                 "addressCountry": "KE" },
+    "contactPoint": { "@type": "ContactPoint",
+                      "contactType": "customer service",
+                      "telephone": "{{ site.phone|escape('js') }}",
+                      "email": "{{ site.email|escape('js') }}",
+                      "areaServed": "KE" },
+    "sameAs": [
+      {% if site.facebook|default('#') != '#' %}"{{ site.facebook|escape('js') }}",{% endif %}
+      {% if site.twitter|default('#')  != '#' %}"{{ site.twitter|escape('js') }}",{% endif %}
+      {% if site.linkedin|default('#') != '#' %}"{{ site.linkedin|escape('js') }}"{% endif %}
+    ]
+  }
+  </script>
+
+  {% block head_jsonld %}{% endblock %}
 
   {% block head_extra %}{% endblock %}
 </head>

@@ -2,7 +2,39 @@
 
 {% block title %}{{ post.title }}{% endblock %}
 {% block meta_description %}{{ post.excerpt|default(post.title) }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block canonical_path %}/impact/{{ post.slug }}{% endblock %}
+{% block og_image_url %}{{ post.cover_image|default(site.logo_square|default('/assets/img/logo-square.png')) }}{% endblock %}
 {% block og_image %}{% if post.cover_image %}<meta property="og:image" content="{{ post.cover_image }}">{% endif %}{% endblock %}
+
+{% block head_meta %}
+  <meta property="article:published_time" content="{{ post.published_at|date('c') }}">
+  {% if post.author_name %}<meta property="article:author" content="{{ post.author_name }}">{% endif %}
+  {% if post.category_name %}<meta property="article:section" content="{{ post.category_name }}">{% endif %}
+{% endblock %}
+
+{% block head_jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline":     {{ post.title|json_encode|raw }},
+  "datePublished":"{{ post.published_at|date('c') }}",
+  {% if post.author_name %}"author":{ "@type":"Person", "name": {{ post.author_name|json_encode|raw }} },{% endif %}
+  "image":        {{ (post.cover_image ?: (site.logo_square|default('/assets/img/logo-square.png')))|json_encode|raw }},
+  "publisher": {
+    "@type":"Organization",
+    "name":  {{ site.name|json_encode|raw }},
+    "logo":  { "@type":"ImageObject", "url": {{ (site.logo|default('/assets/img/logo.png'))|json_encode|raw }} }
+  },
+  "mainEntityOfPage": {
+    "@type":"WebPage",
+    "@id":   "{{ app_url|trim('/') }}/impact/{{ post.slug }}"
+  },
+  "description": {{ (post.excerpt ?: post.title)|json_encode|raw }}
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <section class="page-hero">

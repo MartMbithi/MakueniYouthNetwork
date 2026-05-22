@@ -15,8 +15,17 @@
 </head>
 <body class="admin">
 
+<div class="admin-mobile-bar">
+  <b>{{ site.name }}</b>
+  <button type="button" class="admin-mobile-toggle" aria-label="Menu" aria-controls="admin-sidebar" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+<div class="admin-backdrop"></div>
+
 <div class="admin-shell">
-  <aside class="admin-sidebar">
+  <aside class="admin-sidebar" id="admin-sidebar">
     <a href="/admin" class="admin-brand" style="text-decoration:none">
       {% if site.logo %}
         <span class="admin-brand-logo"><img src="{{ site.logo }}" alt="{{ site.name }}" loading="lazy"></span>
@@ -85,6 +94,28 @@
     {% block content %}{% endblock %}
   </main>
 </div>
+
+<script>
+  (function () {
+    var btn = document.querySelector('.admin-mobile-toggle');
+    var nav = document.getElementById('admin-sidebar');
+    var bd  = document.querySelector('.admin-backdrop');
+    if (!btn || !nav || !bd) return;
+    var close = function () {
+      nav.classList.remove('is-open');
+      bd.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+    };
+    btn.addEventListener('click', function () {
+      var open = nav.classList.toggle('is-open');
+      bd.classList.toggle('is-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    bd.addEventListener('click', close);
+    window.addEventListener('resize', function () { if (window.innerWidth > 900) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  })();
+</script>
 
 </body>
 </html>

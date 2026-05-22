@@ -147,7 +147,7 @@ final class SitemapController
             header('Content-Type: application/xml; charset=utf-8');
         }
 
-        $base = rtrim((string) Setting::get('site_url', $_ENV['APP_URL'] ?? 'http://localhost'), '/');
+        $base = rtrim((string) ($_ENV['APP_URL'] ?? Setting::get('site_url', 'http://localhost')), '/');
 
         $urls = [];
         $urls[] = ['loc' => $base . '/', 'lastmod' => date('Y-m-d')];

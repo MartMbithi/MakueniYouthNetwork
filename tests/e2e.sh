@@ -113,8 +113,10 @@ check_match "homepage shows email"         'info@makueniyouth.org' "$HOME"
 # SEO meta tags
 check_match "homepage <title>" "<title>Makueni Youth Network" "$HOME"
 POST_HTML=$(curl -s "$HOST/impact/bridging-the-gap-youth-leading-change-in-governance")
-check_match "post detail per-page og:title" 'og:title" content="Bridging the Gap' "$POST_HTML"
-check_match "post detail per-page og:image" 'og:image" content="https://makueniyouth.org/wp-content/uploads/2026/05/Youth-Gov' "$POST_HTML"
+echo "$POST_HTML" | grep -qE 'og:title"[[:space:]]*content="Bridging the Gap'        && APTITLE="yes" || APTITLE="no"
+echo "$POST_HTML" | grep -qE 'og:image"[[:space:]]*content="https://makueniyouth\.org' && APIMG="yes"    || APIMG="no"
+check "post detail per-page og:title" "yes" "$APTITLE"
+check "post detail per-page og:image" "yes" "$APIMG"
 
 # Lazy-load on all homepage images
 IMG_COUNT=$(echo "$HOME" | grep -c '<img ')
@@ -131,12 +133,32 @@ nocsrf=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
          -d 'name=X&email=x@y.com&message=hello' "$HOST/contact")
 check "POST /contact missing CSRF" "419" "$nocsrf"
 
-# Valid contact submission
+# Helper: extract the SpamGuard hidden inputs from a form HTML
+extract_spam() {
+  local file="$1" prefix="$2"
+  eval "${prefix}_TS=\$(grep -oE 'name=\"_ts\" value=\"[0-9]+\"'         '$file' | head -1 | sed -E 's/.*value=\"([^\"]+)\".*/\\1/')"
+  eval "${prefix}_SG=\$(grep -oE 'name=\"_ts_sig\" value=\"[a-f0-9]+\"' '$file' | head -1 | sed -E 's/.*value=\"([^\"]+)\".*/\\1/')"
+}
+
+# Valid contact submission — pre-fetch tokens BEFORE the 3 s wait
 COUNT_M_BEFORE=$($MYSQL -e 'SELECT COUNT(*) FROM messages')
 curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /tmp/myn-e2e-contact.html "$HOST/contact"
 CTOK=$(grep -oE 'name="_csrf" value="[a-f0-9]+"' /tmp/myn-e2e-contact.html | head -1 | sed -E 's/.*value="([^"]+)".*/\1/')
+extract_spam /tmp/myn-e2e-contact.html C
+
+# Volunteer form too — fetch first, wait once, submit both
+curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /tmp/myn-e2e-vol.html "$HOST/volunteer"
+VTOK=$(grep -oE 'name="_csrf" value="[a-f0-9]+"' /tmp/myn-e2e-vol.html | head -1 | sed -E 's/.*value="([^"]+)".*/\1/')
+extract_spam /tmp/myn-e2e-vol.html V
+
+# SpamGuard rejects forms submitted in < 2 s
+sleep 3
+
 post_code=$(curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /dev/null -w '%{http_code}' -X POST \
     --data-urlencode "_csrf=$CTOK" \
+    --data-urlencode "_ts=$C_TS"  \
+    --data-urlencode "_ts_sig=$C_SG" \
+    --data-urlencode "website="   \
     --data-urlencode "name=E2E Tester" \
     --data-urlencode "email=e2e@myn.test" \
     --data-urlencode "subject=E2E run" \
@@ -146,12 +168,33 @@ check "POST /contact valid CSRF redirects" "302" "$post_code"
 COUNT_M_AFTER=$($MYSQL -e 'SELECT COUNT(*) FROM messages')
 check "contact insert produces +1 row" "$((COUNT_M_BEFORE+1))" "$COUNT_M_AFTER"
 
-# Valid volunteer submission
+# Honeypot rejection check
+sleep 1
+curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /tmp/myn-e2e-c2.html "$HOST/contact"
+C2T=$(grep -oE 'name="_csrf" value="[a-f0-9]+"' /tmp/myn-e2e-c2.html | head -1 | sed -E 's/.*value="([^"]+)".*/\1/')
+extract_spam /tmp/myn-e2e-c2.html C2
+sleep 3
+COUNT_HONEY_BEFORE=$($MYSQL -e 'SELECT COUNT(*) FROM messages')
+honey_code=$(curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /dev/null -w '%{http_code}' -X POST \
+    --data-urlencode "_csrf=$C2T" \
+    --data-urlencode "_ts=$C2_TS" \
+    --data-urlencode "_ts_sig=$C2_SG" \
+    --data-urlencode "website=http://spam.example.com" \
+    --data-urlencode "name=Bot" \
+    --data-urlencode "email=bot@spam.example.com" \
+    --data-urlencode "message=Buy viagra now click here for cheap deals." \
+    "$HOST/contact")
+COUNT_HONEY_AFTER=$($MYSQL -e 'SELECT COUNT(*) FROM messages')
+check "honeypot redirects silently (302)" "302" "$honey_code"
+check "honeypot prevents DB insert"       "$COUNT_HONEY_BEFORE" "$COUNT_HONEY_AFTER"
+
+# Valid volunteer submission (tokens captured earlier)
 COUNT_V_BEFORE=$($MYSQL -e 'SELECT COUNT(*) FROM volunteers')
-curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /tmp/myn-e2e-vol.html "$HOST/volunteer"
-VTOK=$(grep -oE 'name="_csrf" value="[a-f0-9]+"' /tmp/myn-e2e-vol.html | head -1 | sed -E 's/.*value="([^"]+)".*/\1/')
 v_code=$(curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /dev/null -w '%{http_code}' -X POST \
     --data-urlencode "_csrf=$VTOK" \
+    --data-urlencode "_ts=$V_TS"  \
+    --data-urlencode "_ts_sig=$V_SG" \
+    --data-urlencode "website="   \
     --data-urlencode "full_name=E2E Volunteer" \
     --data-urlencode "email=vol@myn.test" \
     --data-urlencode "phone=+254700000111" \
@@ -161,6 +204,21 @@ v_code=$(curl -sc "$JAR_VISITOR" -b "$JAR_VISITOR" -o /dev/null -w '%{http_code}
 check "POST /volunteer valid CSRF redirects" "302" "$v_code"
 COUNT_V_AFTER=$($MYSQL -e 'SELECT COUNT(*) FROM volunteers')
 check "volunteer insert produces +1 row" "$((COUNT_V_BEFORE+1))" "$COUNT_V_AFTER"
+
+# robots.txt + spam-fields rendered
+check "GET /robots.txt"                 "200" "$(status "$HOST/robots.txt")"
+HOME_HTML=$(curl -s "$HOST/")
+check_match "homepage canonical link"   '<link rel="canonical"' "$HOME_HTML"
+check_match "homepage Organization JSON-LD" '"@type": "NGO"' "$HOME_HTML"
+check_match "twitter:card meta"         'twitter:card' "$HOME_HTML"
+check_match "og:site_name meta"         'og:site_name' "$HOME_HTML"
+POST_HTML2=$(curl -s "$HOST/impact/bridging-the-gap-youth-leading-change-in-governance")
+check_match "post page Article JSON-LD" '"@type": "Article"' "$POST_HTML2"
+echo "$POST_HTML2" | grep -qE 'og:type"[[:space:]]*content="article"' && AT="yes" || AT="no"
+check "post page og:type=article" "yes" "$AT"
+CONTACT_HTML=$(curl -s "$HOST/contact")
+check_match "contact form has honeypot" 'name="website"' "$CONTACT_HTML"
+check_match "contact form has _ts"      'name="_ts"' "$CONTACT_HTML"
 
 # ---------------------------------------------------------------------------
 # Admin auth + dashboard
@@ -388,12 +446,16 @@ fi
 $MYSQL -e "DELETE FROM messages WHERE email='e2e@myn.test'" >/dev/null
 $MYSQL -e "DELETE FROM volunteers WHERE email='vol@myn.test'" >/dev/null
 
-# Error log should not have grown (apart from benign Mailer 'SMTP not configured')
-LOG_ERRS=$(grep -v 'SMTP not configured' storage/logs/app.log | grep -v '^$' | wc -l | tr -d ' ')
+# Error log should not have grown. We filter out benign info lines that the
+# test itself is meant to produce (Mailer not configured, SpamGuard catching
+# the honeypot we deliberately tripped).
+LOG_ERRS=$(grep -v 'SMTP not configured' storage/logs/app.log \
+           | grep -v 'SpamGuard' \
+           | grep -v '^$' | wc -l | tr -d ' ')
 check "storage/logs/app.log clean" "0" "$LOG_ERRS"
 if [[ "$LOG_ERRS" != "0" ]]; then
   echo "    -- log content --"
-  grep -v 'SMTP not configured' storage/logs/app.log | head
+  grep -v 'SMTP not configured' storage/logs/app.log | grep -v 'SpamGuard' | head
 fi
 
 # ---------------------------------------------------------------------------

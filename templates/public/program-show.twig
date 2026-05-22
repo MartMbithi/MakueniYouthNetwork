@@ -2,6 +2,8 @@
 
 {% block title %}{{ program.title }}{% endblock %}
 {% block meta_description %}{{ program.summary|default(program.title) }}{% endblock %}
+{% block canonical_path %}/programs/{{ program.slug }}{% endblock %}
+{% block og_image_url %}{{ program.cover_image|default(site.logo_square|default('/assets/img/logo-square.png')) }}{% endblock %}
 {% block og_image %}{% if program.cover_image %}<meta property="og:image" content="{{ program.cover_image }}">{% endif %}{% endblock %}
 
 {% block content %}

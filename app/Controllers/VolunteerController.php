@@ -136,6 +136,7 @@ use App\Core\Csrf;
 use App\Core\RateLimit;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\SpamGuard;
 use App\Core\View;
 use App\Models\Setting;
 use App\Models\Volunteer;
@@ -158,9 +159,13 @@ final class VolunteerController
     {
         Csrf::requireValid();
 
+        if (!SpamGuard::passes()) {
+            Response::redirect('/volunteer');
+        }
+
         $ip = Request::ip();
-        if (!RateLimit::attempt('volunteer:' . $ip, 3, 600)) {
-            View::flash('Too many submissions from your network. Please try again in a few minutes.', 'error');
+        if (!RateLimit::attemptCombined('volunteer:' . $ip, 3, 600, 10)) {
+            View::flash('Too many submissions from your network. Please try again later.', 'error');
             Response::redirect('/volunteer');
         }
 

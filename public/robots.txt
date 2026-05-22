@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /donate/callback
+Disallow: /donate/webhook
+
+# Server-rendered XML sitemap
+Sitemap: https://makueniyouth.org/sitemap.xml

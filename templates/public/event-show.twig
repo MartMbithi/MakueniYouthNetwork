@@ -2,7 +2,36 @@
 
 {% block title %}{{ event.title }}{% endblock %}
 {% block meta_description %}{{ event.description|striptags|slice(0,160)|default(event.title) }}{% endblock %}
+{% block canonical_path %}/events/{{ event.slug }}{% endblock %}
+{% block og_image_url %}{{ event.cover_image|default(site.logo_square|default('/assets/img/logo-square.png')) }}{% endblock %}
 {% block og_image %}{% if event.cover_image %}<meta property="og:image" content="{{ event.cover_image }}">{% endif %}{% endblock %}
+
+{% block head_jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name":         {{ event.title|json_encode|raw }},
+  "startDate":    "{{ event.starts_at|date('c') }}",
+  {% if event.ends_at %}"endDate": "{{ event.ends_at|date('c') }}",{% endif %}
+  "eventStatus":  "https://schema.org/EventScheduled",
+  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+  {% if event.venue %}
+  "location": { "@type":"Place",
+                "name": {{ event.venue|json_encode|raw }},
+                "address": { "@type":"PostalAddress",
+                             "addressLocality": "Wote",
+                             "addressRegion":   "Makueni County",
+                             "addressCountry":  "KE" } },
+  {% endif %}
+  "image":       {{ (event.cover_image ?: (site.logo_square|default('/assets/img/logo-square.png')))|json_encode|raw }},
+  "organizer":   { "@type":"Organization",
+                   "name": {{ site.name|json_encode|raw }},
+                   "url":  "{{ app_url|trim('/') }}/" },
+  "description": {{ event.description|striptags|slice(0,500)|json_encode|raw }}
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <section class="page-hero">

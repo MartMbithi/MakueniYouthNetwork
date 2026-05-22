@@ -172,6 +172,11 @@ final class View
             static fn (): string => Csrf::token()
         ));
         $env->addFunction(new TwigFunction(
+            'spam_fields',
+            static fn (): string => SpamGuard::fields(),
+            ['is_safe' => ['html']]
+        ));
+        $env->addFunction(new TwigFunction(
             'asset',
             static fn (string $path): string => '/assets/' . ltrim($path, '/')
         ));
@@ -201,6 +206,7 @@ final class View
         $base = [
             'site'         => self::loadSiteSettings(),
             'current_path' => Request::path(),
+            'app_url'      => (string) ($_ENV['APP_URL'] ?? ''),
             'csrf'         => Csrf::token(),
             'auth'         => Auth::check() ? Auth::user() : null,
             'flash'        => self::pullFlashes(),

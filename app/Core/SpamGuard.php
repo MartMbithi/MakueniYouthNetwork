@@ -133,69 +133,75 @@ declare(strict_types=1);
 namespace App\Core;
 
 /**
- * Session-backed sliding-window rate limiter.
+ * Two cheap, layered anti-bot defences for public forms:
  *
- * Good enough for public-form abuse mitigation behind a single web node
- * (login, contact, volunteer). Not a substitute for fail2ban / WAF.
+ *   1. Honeypot — render a hidden text input named "website" (a name bots
+ *      target eagerly). A real user never sees it; a bot fills it. Any
+ *      non-empty submission is dropped as spam.
+ *
+ *   2. Form age — render a HMAC-signed timestamp in the form. On submit
+ *      we accept it only if the form is between 2 seconds and 1 hour old.
+ *      Sub-second submissions are bots; older-than-an-hour is a stale
+ *      tab and the user should reload. The HMAC stops the bot from
+ *      forging a "10 second old" stamp.
  */
-final class RateLimit
+final class SpamGuard
 {
-    /**
-     * @return bool true if the action is allowed, false if the key is over its limit
-     */
-    public static function attempt(string $key, int $max, int $perSeconds): bool
+    private const HONEYPOT_FIELD = 'website';
+    private const TIMESTAMP_FIELD = '_ts';
+    private const SIGNATURE_FIELD = '_ts_sig';
+    private const MIN_AGE_SECONDS = 2;
+    private const MAX_AGE_SECONDS = 3600;
+
+    public static function fields(): string
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            return true;
-        }
-        $bucketKey = '_rl_' . $key;
         $now = time();
-        $bucket = $_SESSION[$bucketKey] ?? [];
-        if (!is_array($bucket)) {
-            $bucket = [];
-        }
-        $bucket = array_values(array_filter($bucket, static fn (int $t): bool => ($now - $t) < $perSeconds));
-        if (count($bucket) >= $max) {
-            $_SESSION[$bucketKey] = $bucket;
+        $sig = self::sign((string) $now);
+        return '<input type="text" name="' . self::HONEYPOT_FIELD
+            . '" value="" tabindex="-1" autocomplete="off" '
+            . 'style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" '
+            . 'aria-hidden="true">'
+            . '<input type="hidden" name="' . self::TIMESTAMP_FIELD . '" value="' . $now . '">'
+            . '<input type="hidden" name="' . self::SIGNATURE_FIELD . '" value="' . $sig . '">';
+    }
+
+    public static function passes(): bool
+    {
+        // 1. Honeypot must be empty
+        $hp = $_POST[self::HONEYPOT_FIELD] ?? '';
+        if (!is_string($hp) || $hp !== '') {
+            error_log('[SpamGuard] honeypot tripped by ip=' . Request::ip());
             return false;
         }
-        $bucket[] = $now;
-        $_SESSION[$bucketKey] = $bucket;
+
+        // 2. Timestamp must be valid + signed + within the window
+        $ts  = $_POST[self::TIMESTAMP_FIELD] ?? '';
+        $sig = $_POST[self::SIGNATURE_FIELD] ?? '';
+        if (!is_string($ts) || !ctype_digit($ts) || !is_string($sig)) {
+            return false;
+        }
+        $expected = self::sign($ts);
+        if (!hash_equals($expected, $sig)) {
+            error_log('[SpamGuard] timestamp signature mismatch ip=' . Request::ip());
+            return false;
+        }
+        $age = time() - (int) $ts;
+        if ($age < self::MIN_AGE_SECONDS) {
+            error_log('[SpamGuard] form submitted in ' . $age . 's by ip=' . Request::ip());
+            return false;
+        }
+        if ($age > self::MAX_AGE_SECONDS) {
+            return false;
+        }
         return true;
     }
 
-    public static function reset(string $key): void
+    private static function sign(string $value): string
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            return;
+        $key = (string) ($_ENV['APP_KEY'] ?? '');
+        if ($key === '') {
+            $key = (string) (session_id() ?: 'fallback-key');
         }
-        unset($_SESSION['_rl_' . $key]);
-    }
-
-    /**
-     * Enforce TWO buckets at once — typically a fast burst limit (e.g. 3 in
-     * 10 min) and a slow daily cap (e.g. 10 per day). Returns false the
-     * moment either bucket is full.
-     */
-    public static function attemptCombined(string $key, int $burstMax, int $burstSec, int $dayMax, int $daySec = 86400): bool
-    {
-        return self::attempt($key . ':burst', $burstMax, $burstSec)
-            && self::attempt($key . ':day',   $dayMax,   $daySec);
-    }
-
-    /**
-     * Returns the number of seconds until the bucket has room again, or 0 if
-     * the action is currently allowed.
-     */
-    public static function retryAfter(string $key, int $perSeconds): int
-    {
-        $bucketKey = '_rl_' . $key;
-        $bucket = $_SESSION[$bucketKey] ?? [];
-        if (!is_array($bucket) || $bucket === []) {
-            return 0;
-        }
-        $oldest = min(array_map('intval', $bucket));
-        $waitUntil = $oldest + $perSeconds;
-        return max(0, $waitUntil - time());
+        return hash_hmac('sha256', $value, $key);
     }
 }

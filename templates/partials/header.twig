@@ -8,17 +8,22 @@
         <span>{{ site.name }}<small>Wote · Makueni County</small></span>
       {% endif %}
     </a>
-    <ul class="menu">
+    <ul class="menu" id="primary-menu">
+      <li><a href="/"         class="{{ current_path == '/'              ? 'is-active' }}">Home</a></li>
       <li><a href="/programs" class="{{ current_path starts with '/programs' ? 'is-active' }}">Our Programs</a></li>
       <li><a href="/about"    class="{{ current_path == '/about'           ? 'is-active' }}">Who We Are</a></li>
       <li><a href="/impact"   class="{{ current_path starts with '/impact' ? 'is-active' }}">Our Impact</a></li>
       <li><a href="/events"   class="{{ current_path starts with '/events' ? 'is-active' }}">Events</a></li>
       <li><a href="/contact"  class="{{ current_path == '/contact'         ? 'is-active' }}">Contact</a></li>
+      <li class="menu-cta-mobile"><a href="/volunteer">Volunteer</a></li>
+      <li class="menu-cta-mobile"><a href="/donate">Donate ♥</a></li>
     </ul>
     <div class="nav-cta">
       <a href="/volunteer" class="btn btn-ghost">Volunteer</a>
       <a href="/donate" class="btn btn-amber">Donate ♥</a>
-      <button class="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+      <button class="burger" aria-label="Menu" aria-controls="primary-menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
 </header>

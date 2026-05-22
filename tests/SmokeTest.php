@@ -270,6 +270,15 @@ final class SmokeTest extends TestCase
         $token = $m[1];
         $this->assertNotEmpty($token);
 
+        // Spam guard timestamp + signature (server emits both as hidden inputs).
+        $this->assertSame(1, preg_match('/name="_ts" value="(\d+)"/', (string) $html, $tm));
+        $this->assertSame(1, preg_match('/name="_ts_sig" value="([a-f0-9]+)"/', (string) $html, $sm));
+        $ts  = $tm[1];
+        $sig = $sm[1];
+
+        // SpamGuard rejects forms submitted in < 2s; wait it out.
+        sleep(3);
+
         $countBefore = (int) Database::connection()->query('SELECT COUNT(*) FROM messages')->fetchColumn();
 
         $ch = curl_init(self::HOST . '/contact');
@@ -277,6 +286,9 @@ final class SmokeTest extends TestCase
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => http_build_query([
                 '_csrf'   => $token,
+                '_ts'     => $ts,
+                '_ts_sig' => $sig,
+                'website' => '',
                 'name'    => 'PHPUnit Smoke',
                 'email'   => 'phpunit@myn.test',
                 'subject' => 'Smoke test',

@@ -2,6 +2,8 @@
 
 {% block title %}{{ page.title }}{% endblock %}
 {% block meta_description %}{{ page.meta_desc|default(page.title) }}{% endblock %}
+{% block canonical_path %}/{{ page.slug }}{% endblock %}
+{% block og_image_url %}{{ page.hero_image|default(site.logo_square|default('/assets/img/logo-square.png')) }}{% endblock %}
 {% block og_image %}{% if page.hero_image %}<meta property="og:image" content="{{ page.hero_image }}">{% endif %}{% endblock %}
 
 {% block content %}

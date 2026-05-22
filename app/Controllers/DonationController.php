@@ -136,6 +136,7 @@ use App\Core\Csrf;
 use App\Core\RateLimit;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\SpamGuard;
 use App\Core\View;
 use App\Models\Donation;
 use App\Services\Paystack;
@@ -155,9 +156,13 @@ final class DonationController
     {
         Csrf::requireValid();
 
+        if (!SpamGuard::passes()) {
+            Response::redirect('/donate');
+        }
+
         $ip = Request::ip();
-        if (!RateLimit::attempt('donate:' . $ip, 5, 600)) {
-            View::flash('Too many attempts. Please try again in a few minutes.', 'error');
+        if (!RateLimit::attemptCombined('donate:' . $ip, 5, 600, 20)) {
+            View::flash('Too many attempts. Please try again later.', 'error');
             Response::redirect('/donate');
         }
 

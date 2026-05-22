@@ -136,6 +136,7 @@ use App\Core\Csrf;
 use App\Core\RateLimit;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\SpamGuard;
 use App\Core\View;
 use App\Models\Message;
 use App\Models\Setting;
@@ -156,9 +157,16 @@ final class ContactController
     {
         Csrf::requireValid();
 
+        if (!SpamGuard::passes()) {
+            // Silently swallow obvious bot traffic; do not tip off the bot
+            // by flashing an error or returning 4xx.
+            Response::redirect('/contact');
+        }
+
         $ip = Request::ip();
-        if (!RateLimit::attempt('contact:' . $ip, 3, 600)) {
-            View::flash('Too many submissions from your network. Please try again in a few minutes.', 'error');
+        // 3 in 10 minutes AND 10 per day per IP
+        if (!RateLimit::attemptCombined('contact:' . $ip, 3, 600, 10)) {
+            View::flash('Too many submissions from your network. Please try again later.', 'error');
             Response::redirect('/contact');
         }
 
