@@ -13,7 +13,7 @@ Tracking: mark each task `[x]` when its acceptance passes.
 
 **Goal:** an empty but bootable skeleton.
 
-### [ ] M0.1 — Initialise repo & Composer
+### [x] M0.1 — Initialise repo & Composer
 - **Files:** `composer.json`, `.gitignore`, `README.md`
 - **Spec:** `composer.json` with PSR-4 autoload `"App\\": "app/"`, PHP `>=8.2`,
   and require: `twig/twig`, `vlucas/phpdotenv`, `phpmailer/phpmailer`.
@@ -21,13 +21,13 @@ Tracking: mark each task `[x]` when its acceptance passes.
   `/public/uploads/*`, keeping `.gitkeep` files.
 - **Acceptance:** `composer install` succeeds; `vendor/` exists.
 
-### [ ] M0.2 — Directory tree
+### [x] M0.2 — Directory tree
 - **Spec:** create the full tree from `CLAUDE.md` §4. Add `.gitkeep` to empty
   dirs (`storage/logs`, `public/uploads`). Copy the provided
   `homepage-template.html` into `design/`.
 - **Acceptance:** tree matches `CLAUDE.md` §4 exactly.
 
-### [ ] M0.3 — Environment config
+### [x] M0.3 — Environment config
 - **Files:** `.env.example`, `config/config.php`
 - **Spec:** `.env.example` keys — `APP_ENV`, `APP_URL`, `APP_KEY`,
   `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`,
@@ -38,7 +38,7 @@ Tracking: mark each task `[x]` when its acceptance passes.
 - **Acceptance:** `require config/config.php` returns an array with `db` and
   `mail` sub-arrays; missing `.env` throws a clear error.
 
-### [ ] M0.4 — Front controller + rewrite
+### [x] M0.4 — Front controller + rewrite
 - **Files:** `public/index.php`, `public/.htaccess`
 - **Spec:** `.htaccess` rewrites all non-file requests to `index.php`.
   `index.php`: set error handler, start session (secure cookie flags), load
@@ -54,7 +54,7 @@ Tracking: mark each task `[x]` when its acceptance passes.
 **Goal:** the framework primitives every controller depends on. Define each as a
 small, single-responsibility class with the contract below.
 
-### [ ] M1.1 — Database (PDO singleton)
+### [x] M1.1 — Database (PDO singleton)
 - **Files:** `app/Core/Database.php`
 - **Contract:**
   ```php
@@ -63,7 +63,7 @@ small, single-responsibility class with the contract below.
   Use `utf8mb4`. Throw on failure with a logged message.
 - **Acceptance:** a throwaway script can `SELECT 1` via `Database::connection()`.
 
-### [ ] M1.2 — Request & Response
+### [x] M1.2 — Request & Response
 - **Files:** `app/Core/Request.php`, `app/Core/Response.php`
 - **Contract:**
   ```php
@@ -78,7 +78,7 @@ small, single-responsibility class with the contract below.
   ```
 - **Acceptance:** unit-callable; `Request::path()` strips the query string.
 
-### [ ] M1.3 — Router
+### [x] M1.3 — Router
 - **Files:** `app/Core/Router.php`
 - **Contract:**
   ```php
@@ -91,7 +91,7 @@ small, single-responsibility class with the contract below.
 - **Acceptance:** registering `GET /` and `GET /x/{slug}` dispatches to the right
   controller method with the slug argument.
 
-### [ ] M1.4 — View (Twig wrapper)
+### [x] M1.4 — View (Twig wrapper)
 - **Files:** `app/Core/View.php`, `templates/layouts/base.twig`,
   `templates/partials/{header,footer,flash}.twig`
 - **Contract:** `View::render(string $template, array $data=[]): string`.
@@ -103,14 +103,14 @@ small, single-responsibility class with the contract below.
 - **Acceptance:** `View::render('public/home.twig')` returns the homepage HTML
   visually matching the provided template.
 
-### [ ] M1.5 — Csrf
+### [x] M1.5 — Csrf
 - **Files:** `app/Core/Csrf.php`
 - **Contract:** `Csrf::token(): string`, `Csrf::check(?string $token): bool`.
   Token stored in session. A `{{ csrf_field()|raw }}` Twig function outputs the
   hidden input.
 - **Acceptance:** a form posting a stale/empty token is rejected with 419/403.
 
-### [ ] M1.6 — Auth + middleware
+### [x] M1.6 — Auth + middleware
 - **Files:** `app/Core/Auth.php`
 - **Contract:**
   ```php
@@ -128,7 +128,7 @@ small, single-responsibility class with the contract below.
 
 ## MILESTONE M2 — Database schema & seed
 
-### [ ] M2.1 — Schema
+### [x] M2.1 — Schema
 - **Files:** `database/schema.sql`
 - **Spec:** create these 12 tables exactly:
   `users, pages, programs, categories, posts, events, stats, partners,
@@ -232,7 +232,7 @@ small, single-responsibility class with the contract below.
 - **Acceptance:** `mysql myn < database/schema.sql` runs with no errors;
   `SHOW TABLES` lists all 12.
 
-### [ ] M2.2 — Seed data
+### [x] M2.2 — Seed data
 - **Files:** `database/seed.sql`
 - **Spec:** seed from the live site content:
   - 1 `users` row — admin, password hashed (document the plaintext in README for
@@ -258,7 +258,7 @@ small, single-responsibility class with the contract below.
 **Goal:** the full public-facing website, data-driven from the DB.
 Build Models first, then Controllers + Twig templates.
 
-### [ ] M3.1 — Models
+### [x] M3.1 — Models
 - **Files:** `app/Models/{Page,Program,Post,Event,Stat,Partner,Setting}.php`
 - **Spec:** thin classes; static finder methods returning arrays. Required:
   `Post::published(int $limit, int $offset=0)`, `Post::findBySlug()`,
@@ -267,7 +267,7 @@ Build Models first, then Controllers + Twig templates.
   `find/findBySlug/all` where useful. All SQL prepared.
 - **Acceptance:** each finder returns expected rows against seed data.
 
-### [ ] M3.2 — Routes (public)
+### [x] M3.2 — Routes (public)
 - **Files:** `routes/web.php`
 - **Spec:** register exactly:
   ```
@@ -290,7 +290,7 @@ Build Models first, then Controllers + Twig templates.
   ```
 - **Acceptance:** `/{slug}` catch-all is registered LAST.
 
-### [ ] M3.3 — HomeController + homepage
+### [x] M3.3 — HomeController + homepage
 - **Files:** `app/Controllers/HomeController.php`, `templates/public/home.twig`
 - **Spec:** `index()` loads programs, latest posts, stats, partners → renders
   `home.twig`, which is the ported `homepage-template.html` with hardcoded
@@ -298,7 +298,7 @@ Build Models first, then Controllers + Twig templates.
 - **Acceptance:** homepage renders identical layout to the design file but with
   DB-driven programs/posts/stats/partners.
 
-### [ ] M3.4 — Programs, Posts, Events, Pages
+### [x] M3.4 — Programs, Posts, Events, Pages
 - **Files:** the four controllers + `templates/public/{programs,program-show,
   impact,post-show,events,event-show,page-show}.twig`
 - **Spec:** list + detail views. Posts list paginates (`?page=N`).
@@ -307,7 +307,7 @@ Build Models first, then Controllers + Twig templates.
 - **Acceptance:** every public URL in M3.2 returns 200 with correct content;
   unknown slug returns the styled 404.
 
-### [ ] M3.5 — Contact & Volunteer forms
+### [x] M3.5 — Contact & Volunteer forms
 - **Files:** `ContactController.php`, `VolunteerController.php`,
   `app/Services/Mailer.php`, `templates/public/{contact,volunteer}.twig`
 - **Spec:** validate server-side, CSRF-check, store in `messages` /
@@ -316,7 +316,7 @@ Build Models first, then Controllers + Twig templates.
 - **Acceptance:** a valid submission inserts a row and shows the flash; an
   invalid/CSRF-missing submission is rejected and re-shows the form with errors.
 
-### [ ] M3.6 — Sitemap + SEO basics
+### [x] M3.6 — Sitemap + SEO basics
 - **Files:** `app/Controllers/SitemapController.php`
 - **Spec:** `sitemap.xml` lists home, all published programs/posts/events/pages.
   `base.twig` outputs per-page `<title>`, `meta description`, and Open Graph
@@ -330,7 +330,7 @@ Build Models first, then Controllers + Twig templates.
 **Goal:** a panel non-technical staff can use. All routes auth-guarded.
 Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 
-### [ ] M4.1 — Auth screens + admin layout
+### [x] M4.1 — Auth screens + admin layout
 - **Files:** `app/Controllers/Admin/AuthController.php`,
   `templates/layouts/admin.twig`, `templates/admin/login.twig`
 - **Spec:** `GET/POST /admin/login`, `POST /admin/logout`. Rate-limit login.
@@ -338,13 +338,13 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - **Acceptance:** correct creds → dashboard; wrong creds → error; logged-out
   access to any `/admin/*` → redirect to login.
 
-### [ ] M4.2 — Dashboard
+### [x] M4.2 — Dashboard
 - **Files:** `Admin/DashboardController.php`, `templates/admin/dashboard.twig`
 - **Spec:** counts — posts, unread messages, pending donations, upcoming events;
   recent activity list.
 - **Acceptance:** `/admin` shows live counts from the DB.
 
-### [ ] M4.3 — Generic CRUD for content types
+### [x] M4.3 — Generic CRUD for content types
 - **Files:** `Admin/{Post,Program,Event,Page}Controller.php` + matching
   `templates/admin/{type}/{index,form}.twig`
 - **Spec:** each gives list / create / edit / delete. Routes follow
@@ -356,7 +356,7 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - **Acceptance:** creating a post in admin makes it appear on `/impact`;
   setting it to draft removes it from the public list.
 
-### [ ] M4.4 — Stats, Partners, Settings
+### [x] M4.4 — Stats, Partners, Settings
 - **Files:** `Admin/{Stat,Partner,Settings}Controller.php` + templates
 - **Spec:** CRUD for `stats` and `partners` (with logo upload); a single
   Settings form writing key/values (phone, email, address, socials) consumed
@@ -364,12 +364,12 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - **Acceptance:** editing the phone number in Settings changes it in the public
   footer immediately.
 
-### [ ] M4.5 — Inboxes: Volunteers & Messages
+### [x] M4.5 — Inboxes: Volunteers & Messages
 - **Files:** `Admin/{Volunteer,Message}Controller.php` + templates
 - **Spec:** read-only lists; mark message read/unread; CSV export of volunteers.
 - **Acceptance:** form submissions from M3.5 appear here; CSV downloads.
 
-### [ ] M4.6 — Media upload service
+### [x] M4.6 — Media upload service
 - **Files:** `app/Services/ImageProcessor.php`
 - **Spec:** on any image upload — validate extension + MIME, rename randomly,
   resize to max 1600px wide, convert to WebP (GD or Imagick), store in
@@ -377,7 +377,7 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - **Acceptance:** uploading a large JPG yields a smaller WebP in `uploads/`;
   a `.php` file disguised as `.jpg` is rejected.
 
-### [ ] M4.7 — Users (admin role only)
+### [x] M4.7 — Users (admin role only)
 - **Files:** `Admin/UserController.php` + templates
 - **Spec:** CRUD admin/editor accounts; only `role=admin` may access; passwords
   hashed; an admin cannot delete their own account.
@@ -387,7 +387,7 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 
 ## MILESTONE M5 — Paystack donations
 
-### [ ] M5.1 — Paystack service
+### [x] M5.1 — Paystack service
 - **Files:** `app/Services/Paystack.php`
 - **Spec:** raw cURL against the Paystack API (`https://api.paystack.co`).
   Methods:
@@ -405,7 +405,7 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - **Acceptance:** with valid test keys, `initialize()` returns an
   `authorization_url` pointing at `https://checkout.paystack.com/...`.
 
-### [ ] M5.2 — Donation flow
+### [x] M5.2 — Donation flow
 - **Files:** `app/Controllers/DonationController.php`,
   `templates/public/{donate,donate-thanks}.twig`
 - **Spec:**
@@ -430,7 +430,7 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
   `completed` after either the redirect-callback OR the webhook fires; a
   tampered webhook (wrong signature) is rejected with `400`.
 
-### [ ] M5.3 — Donations ledger (admin)
+### [x] M5.3 — Donations ledger (admin)
 - **Files:** `Admin/DonationController.php` + template
 - **Spec:** list all donations with status, amount, currency, channel,
   reference; filter by status; date-range total.
@@ -440,7 +440,7 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 
 ## MILESTONE M6 — WordPress migration & SEO
 
-### [ ] M6.1 — Content import script
+### [x] M6.1 — Content import script
 - **Files:** `database/import-wordpress.php`
 - **Spec:** one-time CLI script. Pull posts/pages/programs from the WP REST API
   (`https://makueniyouth.org/wp-json/wp/v2/...`) or a provided WXR export; map
@@ -450,7 +450,7 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - **Acceptance:** running it populates posts/pages/media; re-running it inserts
   no duplicates.
 
-### [ ] M6.2 — 301 redirect map
+### [x] M6.2 — 301 redirect map
 - **Files:** `public/.htaccess` (append), `database/redirects.md`
 - **Spec:** map every legacy WordPress URL to its new path and add
   `Redirect 301` rules — e.g. `/advocacy-civic-education/` →
@@ -463,13 +463,13 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 
 ## MILESTONE M7 — Hardening, testing, launch
 
-### [ ] M7.1 — Error pages & logging
+### [x] M7.1 — Error pages & logging
 - **Spec:** styled `404` and `500` templates; uncaught exceptions logged to
   `storage/logs/app.log`; stack traces shown only when `APP_ENV=local`.
 - **Acceptance:** an unknown route shows the styled 404; a forced exception is
   logged and shows a friendly 500 in production mode.
 
-### [ ] M7.2 — Security pass
+### [x] M7.2 — Security pass
 - **Spec:** audit against `CLAUDE.md` §6 — confirm prepared statements
   everywhere, CSRF on every form, upload validation, secure session cookies,
   rate limiting on login + public forms, HTTPS-redirect rule, security headers
@@ -477,20 +477,20 @@ Use `templates/layouts/admin.twig` (sidebar layout) for every admin view.
 - **Acceptance:** a written checklist in `README.md`, every item ticked with the
   file/line that satisfies it.
 
-### [ ] M7.3 — Performance
+### [x] M7.3 — Performance
 - **Spec:** images lazy-loaded; CSS/JS minified; critical CSS inlined in
   `base.twig`; gzip enabled via `.htaccess`; DB indexes from M2.1 present.
 - **Acceptance:** homepage transfers under ~300 KB and renders quickly on a
   throttled (Fast 3G) profile.
 
-### [ ] M7.4 — Tests (smoke)
+### [x] M7.4 — Tests (smoke)
 - **Files:** `tests/` + PHPUnit
 - **Spec:** smoke tests — every public route returns 200/expected status; a
   contact submission inserts a row; auth guard blocks `/admin`; CSRF rejection
   works.
 - **Acceptance:** `vendor/bin/phpunit` passes.
 
-### [ ] M7.5 — Docs & handover
+### [x] M7.5 — Docs & handover
 - **Files:** `README.md`, `docs/admin-guide.md`
 - **Spec:** README — setup, env, deploy steps, backup instructions.
   `admin-guide.md` — plain-language guide for MYN staff: log in, add a post,
