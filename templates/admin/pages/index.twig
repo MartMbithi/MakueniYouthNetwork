@@ -1,0 +1,27 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Pages{% endblock %}
+{% block actions %}<a href="/admin/pages/create" class="admin-btn primary">+ New page</a>{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th>Title</th><th>URL</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+  <tbody>
+  {% for p in pages %}
+    <tr>
+      <td><a href="/admin/pages/{{ p.id }}/edit">{{ p.title }}</a></td>
+      <td><code style="font-size:.82rem;color:var(--admin-muted)">/{{ p.slug }}</code></td>
+      <td>{{ h.status_pill(p.status) }}</td>
+      <td>{{ p.updated_at|date('M j, Y') }}</td>
+      <td class="row-actions">
+        <a class="admin-btn small ghost" href="/{{ p.slug }}" target="_blank">View</a>
+        {{ h.delete_button('/admin/pages/' ~ p.id ~ '/delete') }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" style="text-align:center;color:var(--admin-muted);padding:24px">No pages yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

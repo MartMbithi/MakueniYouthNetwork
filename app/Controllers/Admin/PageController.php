@@ -130,63 +130,181 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Controllers\Admin;
+
+use App\Core\Csrf;
 use App\Core\Database;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
+use App\Core\Slug;
 use App\Core\View;
+use App\Models\Page;
 use App\Services\ImageProcessor;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class PageController
+{
+    public function index(): string
+    {
+        return View::render('admin/pages/index.twig', [
+            'title' => 'Pages',
+            'pages' => Page::all(),
+        ]);
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function create(): string
+    {
+        return View::render('admin/pages/form.twig', [
+            'title'  => 'New page',
+            'page'   => $this->blank(),
+            'action' => '/admin/pages',
+            'mode'   => 'create',
+        ]);
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    public function store(): string
+    {
+        Csrf::requireValid();
+        $data = $this->collect();
+        $errors = $this->validate($data);
+        if ($errors !== []) {
+            return $this->renderForm($data, $errors, 'create', '/admin/pages');
+        }
+        $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], null);
+        $hero = $this->uploadOrUrl($data['hero_file']);
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+        $id = Page::create([
+            'slug'       => $slug,
+            'title'      => $data['title'],
+            'body'       => $data['body'],
+            'meta_desc'  => $data['meta_desc'],
+            'hero_image' => $hero,
+            'status'     => $data['status'],
+        ]);
+        View::flash('Page created.', 'success');
+        Response::redirect('/admin/pages/' . $id . '/edit');
+        return '';
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    public function edit(string $id): string
+    {
+        $page = Page::find((int) $id);
+        if (!$page) {
+            Response::notFound();
+            return '';
+        }
+        return View::render('admin/pages/form.twig', [
+            'title'  => 'Edit page',
+            'page'   => $page,
+            'action' => '/admin/pages/' . $id,
+            'mode'   => 'edit',
+        ]);
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+    public function update(string $id): string
+    {
+        Csrf::requireValid();
+        $page = Page::find((int) $id);
+        if (!$page) {
+            Response::notFound();
+            return '';
+        }
+        $data = $this->collect();
+        $errors = $this->validate($data);
+        if ($errors !== []) {
+            return $this->renderForm(array_merge($page, $data), $errors, 'edit', '/admin/pages/' . $id);
+        }
+        $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], (int) $id);
+        $hero = $this->uploadOrUrl($data['hero_file']) ?? $page['hero_image'];
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+        Page::update((int) $id, [
+            'slug'       => $slug,
+            'title'      => $data['title'],
+            'body'       => $data['body'],
+            'meta_desc'  => $data['meta_desc'],
+            'hero_image' => $hero,
+            'status'     => $data['status'],
+        ]);
+        View::flash('Page saved.', 'success');
+        Response::redirect('/admin/pages/' . $id . '/edit');
+        return '';
+    }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    public function destroy(string $id): string
+    {
+        Csrf::requireValid();
+        Page::delete((int) $id);
+        View::flash('Page deleted.', 'info');
+        Response::redirect('/admin/pages');
+        return '';
+    }
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @return array<string,mixed> */
+    private function collect(): array
+    {
+        $action = (string) Request::input('action', 'save');
+        $status = $action === 'publish' ? 'published' : 'draft';
+        return [
+            'title'      => trim((string) Request::input('title', '')),
+            'slug'       => trim((string) Request::input('slug', '')),
+            'body'       => (string) Request::input('body', ''),
+            'meta_desc'  => trim((string) Request::input('meta_desc', '')),
+            'status'     => $status,
+            'hero_file'  => Request::file('hero_image_file'),
+            'hero_image' => trim((string) Request::input('hero_image', '')),
+        ];
+    }
+
+    /** @return array<string,array<int,string>> */
+    private function validate(array $data): array
+    {
+        $errors = [];
+        if ($data['title'] === '')   $errors['title'][]   = 'Title is required.';
+        if ($data['body']  === '')   $errors['body'][]    = 'Body cannot be empty.';
+        return $errors;
+    }
+
+    private function resolveSlug(string $source, ?int $id): string
+    {
+        $pdo = Database::connection();
+        return Slug::unique($source, static function (string $slug) use ($pdo, $id): bool {
+            $stmt = $pdo->prepare('SELECT id FROM pages WHERE slug = :s LIMIT 1');
+            $stmt->execute([':s' => $slug]);
+            $row = $stmt->fetch();
+            return $row !== false && (int) $row['id'] !== $id;
+        });
+    }
+
+    /** @param array<string,mixed>|null $upload */
+    private function uploadOrUrl(?array $upload): ?string
+    {
+        if ($upload !== null) {
+            try {
+                return ImageProcessor::store($upload);
+            } catch (\Throwable $e) {
+                View::flash('Hero upload failed: ' . $e->getMessage(), 'error');
+            }
+        }
+        $url = trim((string) Request::input('hero_image', ''));
+        return $url !== '' ? $url : null;
+    }
+
+    private function renderForm(array $page, array $errors, string $mode, string $action): string
+    {
+        return View::render('admin/pages/form.twig', [
+            'title'  => $mode === 'create' ? 'New page' : 'Edit page',
+            'page'   => $page,
+            'action' => $action,
+            'mode'   => $mode,
+            'errors' => $errors,
+        ]);
+    }
+
+    /** @return array<string,mixed> */
+    private function blank(): array
+    {
+        return [
+            'id' => null, 'slug' => '', 'title' => '', 'body' => '',
+            'meta_desc' => '', 'hero_image' => null, 'status' => 'draft',
+        ];
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

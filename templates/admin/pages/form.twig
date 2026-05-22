@@ -1,0 +1,55 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}{{ mode == 'create' ? 'New page' : 'Edit page' }}{% endblock %}
+
+{% block content %}
+{{ h.errors(errors|default([])) }}
+
+<form method="post" action="{{ action }}" enctype="multipart/form-data" class="admin-form">
+  {{ csrf_field()|raw }}
+  <div class="panel">
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" value="{{ page.title|default('') }}" required>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="slug">Slug</label>
+      <input type="text" id="slug" name="slug" value="{{ page.slug|default('') }}" placeholder="auto from title">
+      <div class="help">URL: <code>/{{ page.slug|default('your-slug') }}</code></div>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="meta_desc">Meta description (SEO)</label>
+      <textarea id="meta_desc" name="meta_desc" style="min-height:60px">{{ page.meta_desc|default('') }}</textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="body">Body (HTML)</label>
+      <textarea id="body" name="body" required>{{ page.body|default('') }}</textarea>
+    </div>
+
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="hero_image">Hero image URL</label>
+        <input type="url" id="hero_image" name="hero_image" value="{{ page.hero_image|default('') }}">
+      </div>
+      <div class="field">
+        <label for="hero_image_file">…or upload</label>
+        <input type="file" id="hero_image_file" name="hero_image_file" accept="image/jpeg,image/png,image/webp">
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" name="action" value="draft"   class="admin-btn ghost">Save draft</button>
+    <button type="submit" name="action" value="publish" class="admin-btn primary">{{ page.status == 'published' ? 'Update' : 'Publish' }}</button>
+    {% if page.id %}
+      <a href="/{{ page.slug }}" target="_blank" class="admin-btn amber">View live →</a>
+      <span style="flex:1"></span>
+      {{ h.delete_button('/admin/pages/' ~ page.id ~ '/delete') }}
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

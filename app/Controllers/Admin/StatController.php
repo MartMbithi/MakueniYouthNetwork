@@ -130,63 +130,85 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers\Admin;
+
+use App\Core\Csrf;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
+use App\Models\Stat;
 
-$rootDir = dirname(__DIR__);
+final class StatController
+{
+    public function index(): string
+    {
+        return View::render('admin/stats/index.twig', [
+            'title' => 'Stats',
+            'stats' => Stat::all(),
+        ]);
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function create(): string
+    {
+        return View::render('admin/stats/form.twig', [
+            'title'  => 'New stat',
+            'stat'   => ['id' => null, 'label' => '', 'value' => '', 'sort_order' => 0],
+            'action' => '/admin/stats',
+            'mode'   => 'create',
+        ]);
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    public function store(): string
+    {
+        Csrf::requireValid();
+        $data = $this->collect();
+        if ($data['label'] === '' || $data['value'] === '') {
+            View::flash('Label and value are required.', 'error');
+            Response::redirect('/admin/stats/create');
+        }
+        Stat::create($data);
+        View::flash('Stat created.', 'success');
+        Response::redirect('/admin/stats');
+        return '';
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    public function edit(string $id): string
+    {
+        $stat = Stat::find((int) $id);
+        if (!$stat) { Response::notFound(); return ''; }
+        return View::render('admin/stats/form.twig', [
+            'title'  => 'Edit stat',
+            'stat'   => $stat,
+            'action' => '/admin/stats/' . $id,
+            'mode'   => 'edit',
+        ]);
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    public function update(string $id): string
+    {
+        Csrf::requireValid();
+        Stat::update((int) $id, $this->collect());
+        View::flash('Stat saved.', 'success');
+        Response::redirect('/admin/stats');
+        return '';
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+    public function destroy(string $id): string
+    {
+        Csrf::requireValid();
+        Stat::delete((int) $id);
+        View::flash('Stat deleted.', 'info');
+        Response::redirect('/admin/stats');
+        return '';
+    }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @return array<string,mixed> */
+    private function collect(): array
+    {
+        return [
+            'label'      => trim((string) Request::input('label', '')),
+            'value'      => trim((string) Request::input('value', '')),
+            'sort_order' => (int) Request::input('sort_order', 0),
+        ];
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

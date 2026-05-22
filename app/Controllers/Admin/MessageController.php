@@ -130,63 +130,40 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers\Admin;
+
+use App\Core\Csrf;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
+use App\Models\Message;
 
-$rootDir = dirname(__DIR__);
+final class MessageController
+{
+    public function index(): string
+    {
+        return View::render('admin/messages/index.twig', [
+            'title'    => 'Messages',
+            'messages' => Message::all(),
+        ]);
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function toggleRead(string $id): string
+    {
+        Csrf::requireValid();
+        $m = Message::find((int) $id);
+        if (!$m) { Response::notFound(); return ''; }
+        Message::markRead((int) $id, !((bool) $m['is_read']));
+        Response::redirect('/admin/messages');
+        return '';
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
-
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
-
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public function destroy(string $id): string
+    {
+        Csrf::requireValid();
+        Message::delete((int) $id);
+        View::flash('Message deleted.', 'info');
+        Response::redirect('/admin/messages');
+        return '';
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

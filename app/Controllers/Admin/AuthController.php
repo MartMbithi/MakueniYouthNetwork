@@ -130,63 +130,59 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers\Admin;
+
+use App\Core\Auth;
+use App\Core\Csrf;
+use App\Core\RateLimit;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class AuthController
+{
+    public function loginForm(): string
+    {
+        if (Auth::check()) {
+            Response::redirect('/admin');
+        }
+        return View::render('admin/login.twig');
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function login(): string
+    {
+        Csrf::requireValid();
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+        $ip = Request::ip();
+        if (!RateLimit::attempt('login:' . $ip, 5, 300)) {
+            View::flash('Too many sign-in attempts. Wait a few minutes and try again.', 'error');
+            Response::redirect('/admin/login');
+        }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+        $email = trim((string) Request::input('email', ''));
+        $pass  = (string) Request::input('password', '');
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $pass === '') {
+            View::flash('Email and password are required.', 'error');
+            Response::redirect('/admin/login');
+        }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+        if (!Auth::attempt($email, $pass)) {
+            View::flash('Those credentials did not match. Please try again.', 'error');
+            Response::redirect('/admin/login');
+        }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+        RateLimit::reset('login:' . $ip);
+        Response::redirect('/admin');
+        return '';
+    }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public function logout(): string
+    {
+        Csrf::requireValid();
+        Auth::logout();
+        View::flash('You have been signed out.', 'info');
+        Response::redirect('/admin/login');
+        return '';
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

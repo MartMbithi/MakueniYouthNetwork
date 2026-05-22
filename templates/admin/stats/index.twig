@@ -1,0 +1,27 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Stats{% endblock %}
+{% block actions %}<a href="/admin/stats/create" class="admin-btn primary">+ New stat</a>{% endblock %}
+
+{% block content %}
+<p style="color:var(--admin-muted);margin-bottom:16px">These appear in the green stripe on the homepage.</p>
+<table class="admin-table">
+  <thead><tr><th>Value</th><th>Label</th><th>Order</th><th></th></tr></thead>
+  <tbody>
+  {% for s in stats %}
+    <tr>
+      <td><a href="/admin/stats/{{ s.id }}/edit" style="font-family:'Fraunces',serif;font-size:1.2rem">{{ s.value }}</a></td>
+      <td>{{ s.label }}</td>
+      <td>{{ s.sort_order }}</td>
+      <td class="row-actions">
+        <a class="admin-btn small ghost" href="/admin/stats/{{ s.id }}/edit">Edit</a>
+        {{ h.delete_button('/admin/stats/' ~ s.id ~ '/delete') }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" style="text-align:center;color:var(--admin-muted);padding:24px">No stats yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

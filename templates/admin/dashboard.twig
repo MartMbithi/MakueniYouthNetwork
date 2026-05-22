@@ -1,0 +1,90 @@
+{% extends 'layouts/admin.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block subtitle %}<div class="subtitle">Welcome back, {{ auth.name }}. Here is what's happening.</div>{% endblock %}
+
+{% block content %}
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="n">{{ counts.posts_published }}</div>
+    <div class="l">Published posts ({{ counts.posts_total }} total)</div>
+  </div>
+  <div class="stat-card">
+    <div class="n">{{ counts.messages_unread }}</div>
+    <div class="l">Unread messages</div>
+  </div>
+  <div class="stat-card">
+    <div class="n">{{ counts.donations_pending }}</div>
+    <div class="l">Pending donations ({{ counts.donations_completed }} completed)</div>
+  </div>
+  <div class="stat-card">
+    <div class="n">{{ counts.events_upcoming }}</div>
+    <div class="l">Upcoming events</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px">
+
+  <div class="panel">
+    <h2 style="font-family:'Fraunces',serif;font-weight:600;font-size:1.2rem;margin:0 0 14px">Latest messages</h2>
+    {% if recent.messages|length == 0 %}
+      <p style="color:var(--admin-muted)">No messages yet.</p>
+    {% else %}
+      <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+        {% for m in recent.messages %}
+          <li style="display:flex;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--admin-border)">
+            <div>
+              <a href="/admin/messages" style="font-weight:600;color:var(--admin-accent-2);text-decoration:none">{{ m.name }}</a>
+              <div style="color:var(--admin-muted);font-size:.84rem">{{ m.subject|default('(no subject)') }}</div>
+            </div>
+            <small style="color:var(--admin-muted);white-space:nowrap">{{ m.created_at|date('M j') }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2 style="font-family:'Fraunces',serif;font-weight:600;font-size:1.2rem;margin:0 0 14px">Latest volunteers</h2>
+    {% if recent.volunteers|length == 0 %}
+      <p style="color:var(--admin-muted)">No volunteers yet.</p>
+    {% else %}
+      <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+        {% for v in recent.volunteers %}
+          <li style="display:flex;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--admin-border)">
+            <div>
+              <a href="/admin/volunteers" style="font-weight:600;color:var(--admin-accent-2);text-decoration:none">{{ v.full_name }}</a>
+              <div style="color:var(--admin-muted);font-size:.84rem">{{ v.interest|default('—') }}</div>
+            </div>
+            <small style="color:var(--admin-muted);white-space:nowrap">{{ v.created_at|date('M j') }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+
+  <div class="panel" style="grid-column:1/-1">
+    <h2 style="font-family:'Fraunces',serif;font-weight:600;font-size:1.2rem;margin:0 0 14px">Recent posts</h2>
+    {% if recent.posts|length == 0 %}
+      <p style="color:var(--admin-muted)">No posts yet.</p>
+    {% else %}
+      <table class="admin-table">
+        <thead><tr><th>Title</th><th>Status</th><th>Category</th><th>Published</th><th></th></tr></thead>
+        <tbody>
+        {% for p in recent.posts %}
+          <tr>
+            <td><a href="/admin/posts/{{ p.id }}/edit">{{ p.title }}</a></td>
+            <td><span class="status-pill {{ p.status }}">{{ p.status }}</span></td>
+            <td>{{ p.category_name|default('—') }}</td>
+            <td>{{ p.published_at ? p.published_at|date('M j, Y') : '—' }}</td>
+            <td><a class="admin-btn small ghost" href="/impact/{{ p.slug }}" target="_blank">View</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

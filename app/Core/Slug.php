@@ -130,63 +130,44 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
+namespace App\Core;
 
-$rootDir = dirname(__DIR__);
+final class Slug
+{
+    public static function make(string $title): string
+    {
+        $s = $title;
+        if (function_exists('iconv')) {
+            $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+            if (is_string($converted) && $converted !== '') {
+                $s = $converted;
+            }
+        }
+        $s = strtolower($s);
+        $s = preg_replace('/[^a-z0-9]+/', '-', $s) ?? '';
+        $s = trim($s, '-');
+        if ($s === '') {
+            $s = 'item-' . substr(bin2hex(random_bytes(4)), 0, 6);
+        }
+        return $s;
+    }
 
-require $rootDir . '/vendor/autoload.php';
-
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
-
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
-
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /**
+     * @param callable(string):bool $exists  predicate: does this slug already exist?
+     */
+    public static function unique(string $base, callable $exists): string
+    {
+        $base = self::make($base);
+        if (!$exists($base)) {
+            return $base;
+        }
+        $i = 2;
+        while ($exists($base . '-' . $i)) {
+            $i++;
+            if ($i > 999) {
+                return $base . '-' . substr(bin2hex(random_bytes(4)), 0, 6);
+            }
+        }
+        return $base . '-' . $i;
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

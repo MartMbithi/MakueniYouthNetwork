@@ -130,63 +130,94 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class User
+{
+    /** @return list<array<string,mixed>> */
+    public static function all(): array
+    {
+        $stmt = Database::connection()->query(
+            'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC'
+        );
+        return $stmt->fetchAll() ?: [];
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT id, name, email, role, created_at FROM users WHERE id = :id'
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @return array<string,mixed>|null */
+    public static function findByEmail(string $email): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM users WHERE email = :e LIMIT 1');
+        $stmt->execute([':e' => $email]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    /** @param array{name:string,email:string,password:string,role?:string} $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO users (name, email, password_hash, role)
+             VALUES (:name, :email, :hash, :role)'
+        );
+        $stmt->execute([
+            ':name'  => $data['name'],
+            ':email' => $data['email'],
+            ':hash'  => password_hash($data['password'], PASSWORD_DEFAULT),
+            ':role'  => $data['role'] ?? 'editor',
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    /** @param array{name:string,email:string,role?:string,password?:?string} $data */
+    public static function update(int $id, array $data): void
+    {
+        if (!empty($data['password'])) {
+            $stmt = Database::connection()->prepare(
+                'UPDATE users SET name = :name, email = :email, role = :role,
+                                  password_hash = :hash
+                 WHERE id = :id'
+            );
+            $stmt->execute([
+                ':name'  => $data['name'],
+                ':email' => $data['email'],
+                ':role'  => $data['role'] ?? 'editor',
+                ':hash'  => password_hash($data['password'], PASSWORD_DEFAULT),
+                ':id'    => $id,
+            ]);
+        } else {
+            $stmt = Database::connection()->prepare(
+                'UPDATE users SET name = :name, email = :email, role = :role WHERE id = :id'
+            );
+            $stmt->execute([
+                ':name'  => $data['name'],
+                ':email' => $data['email'],
+                ':role'  => $data['role'] ?? 'editor',
+                ':id'    => $id,
+            ]);
+        }
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM users WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public static function count(): int
+    {
+        return (int) Database::connection()->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

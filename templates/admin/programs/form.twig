@@ -1,0 +1,78 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}{{ mode == 'create' ? 'New program' : 'Edit program' }}{% endblock %}
+
+{% block content %}
+{{ h.errors(errors|default([])) }}
+
+<form method="post" action="{{ action }}" enctype="multipart/form-data" class="admin-form">
+  {{ csrf_field()|raw }}
+  <div class="panel">
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" value="{{ program.title|default('') }}" required>
+    </div>
+
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="slug">Slug</label>
+        <input type="text" id="slug" name="slug" value="{{ program.slug|default('') }}" placeholder="auto from title">
+      </div>
+      <div class="field">
+        <label for="parent_id">Parent program <span style="color:var(--admin-muted);font-weight:400">(makes this a sub-program)</span></label>
+        <select id="parent_id" name="parent_id">
+          <option value="">— top-level —</option>
+          {% for p in parents %}
+            <option value="{{ p.id }}" {{ program.parent_id == p.id ? 'selected' : '' }}>{{ p.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="summary">Summary <span style="color:var(--admin-muted);font-weight:400">(shown on the homepage card)</span></label>
+      <textarea id="summary" name="summary" style="min-height:80px">{{ program.summary|default('') }}</textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="body">Body (HTML)</label>
+      <textarea id="body" name="body">{{ program.body|default('') }}</textarea>
+    </div>
+
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="cover_image">Cover image URL</label>
+        <input type="url" id="cover_image" name="cover_image" value="{{ program.cover_image|default('') }}">
+      </div>
+      <div class="field">
+        <label for="cover_image_file">…or upload</label>
+        <input type="file" id="cover_image_file" name="cover_image_file" accept="image/jpeg,image/png,image/webp">
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="sort_order">Display order</label>
+        <input type="number" id="sort_order" name="sort_order" value="{{ program.sort_order|default(0) }}">
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="published" {{ program.status == 'published' ? 'selected' : '' }}>Published</option>
+          <option value="draft"     {{ program.status == 'draft'     ? 'selected' : '' }}>Draft</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" name="action" value="save" class="admin-btn primary">{{ mode == 'create' ? 'Create' : 'Save changes' }}</button>
+    {% if program.id %}
+      <a href="/programs/{{ program.slug }}" target="_blank" class="admin-btn amber">View live →</a>
+      <span style="flex:1"></span>
+      {{ h.delete_button('/admin/programs/' ~ program.id ~ '/delete') }}
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

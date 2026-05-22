@@ -1,0 +1,39 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Donations{% endblock %}
+{% block subtitle %}<div class="subtitle">Total completed in this range: <strong>{{ total|number_format(2) }} KES</strong></div>{% endblock %}
+
+{% block content %}
+<form method="get" action="/admin/donations" class="panel" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:16px;align-items:end;margin-bottom:16px">
+  <div class="field"><label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">All</option>
+      {% for s in ['pending','completed','failed','abandoned'] %}
+        <option value="{{ s }}" {{ filters.status == s ? 'selected' : '' }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field"><label for="from">From</label><input type="date" id="from" name="from" value="{{ filters.from }}"></div>
+  <div class="field"><label for="to">To</label><input type="date" id="to" name="to" value="{{ filters.to }}"></div>
+  <button type="submit" class="admin-btn primary">Filter</button>
+</form>
+
+<table class="admin-table">
+  <thead><tr><th>Reference</th><th>Donor</th><th>Amount</th><th>Channel</th><th>Status</th><th>When</th></tr></thead>
+  <tbody>
+  {% for d in donations %}
+    <tr>
+      <td><code style="font-size:.82rem">{{ d.reference }}</code></td>
+      <td>{{ d.donor_name|default('—') }}<br><a href="mailto:{{ d.donor_email }}" style="color:var(--admin-muted);font-size:.82rem">{{ d.donor_email }}</a></td>
+      <td><strong>{{ d.amount|number_format(2) }} {{ d.currency }}</strong></td>
+      <td>{{ d.channel|default('—') }}</td>
+      <td>{{ h.status_pill(d.status) }}</td>
+      <td>{{ d.created_at|date('M j, Y · g:ia') }}{% if d.paid_at %}<br><small style="color:var(--admin-muted)">paid {{ d.paid_at|date('M j, g:ia') }}</small>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" style="text-align:center;color:var(--admin-muted);padding:24px">No donations yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

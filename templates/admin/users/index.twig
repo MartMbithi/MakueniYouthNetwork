@@ -1,0 +1,27 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Users{% endblock %}
+{% block actions %}<a href="/admin/users/create" class="admin-btn primary">+ New user</a>{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+  <tbody>
+  {% for u in users %}
+    <tr>
+      <td><a href="/admin/users/{{ u.id }}/edit">{{ u.name }}</a></td>
+      <td>{{ u.email }}</td>
+      <td><span class="status-pill {{ u.role == 'admin' ? 'completed' : 'pending' }}">{{ u.role }}</span></td>
+      <td>{{ u.created_at|date('M j, Y') }}</td>
+      <td class="row-actions">
+        <a class="admin-btn small ghost" href="/admin/users/{{ u.id }}/edit">Edit</a>
+        {% if auth.id != u.id %}
+          {{ h.delete_button('/admin/users/' ~ u.id ~ '/delete') }}
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

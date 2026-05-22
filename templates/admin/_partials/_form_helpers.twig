@@ -1,0 +1,24 @@
+{% macro errors(errors) %}
+  {% if errors is defined and errors|length > 0 %}
+    <div class="errors">
+      <strong>Please fix:</strong>
+      <ul>
+        {% for field, msgs in errors %}
+          {% for m in msgs %}<li>{{ m }}</li>{% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro delete_button(action) %}
+  <form method="post" action="{{ action }}" style="display:inline" onsubmit="return confirm('Delete? This cannot be undone.')">
+    {{ csrf_field()|raw }}
+    <input type="hidden" name="_method" value="DELETE">
+    <button type="submit" class="admin-btn small danger">Delete</button>
+  </form>
+{% endmacro %}
+
+{% macro status_pill(status) %}
+  <span class="status-pill {{ status }}">{{ status }}</span>
+{% endmacro %}

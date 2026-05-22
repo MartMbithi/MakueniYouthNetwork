@@ -130,63 +130,107 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers\Admin;
+
+use App\Core\Csrf;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
+use App\Models\Partner;
 use App\Services\ImageProcessor;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class PartnerController
+{
+    public function index(): string
+    {
+        return View::render('admin/partners/index.twig', [
+            'title'    => 'Partners',
+            'partners' => Partner::all(),
+        ]);
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function create(): string
+    {
+        return View::render('admin/partners/form.twig', [
+            'title'   => 'New partner',
+            'partner' => ['id' => null, 'name' => '', 'logo' => null, 'url' => '', 'sort_order' => 0],
+            'action'  => '/admin/partners',
+            'mode'    => 'create',
+        ]);
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    public function store(): string
+    {
+        Csrf::requireValid();
+        $data = $this->collect();
+        if ($data['name'] === '') {
+            View::flash('Partner name is required.', 'error');
+            Response::redirect('/admin/partners/create');
+        }
+        Partner::create($data);
+        View::flash('Partner created.', 'success');
+        Response::redirect('/admin/partners');
+        return '';
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    public function edit(string $id): string
+    {
+        $partner = Partner::find((int) $id);
+        if (!$partner) { Response::notFound(); return ''; }
+        return View::render('admin/partners/form.twig', [
+            'title'   => 'Edit partner',
+            'partner' => $partner,
+            'action'  => '/admin/partners/' . $id,
+            'mode'    => 'edit',
+        ]);
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    public function update(string $id): string
+    {
+        Csrf::requireValid();
+        $partner = Partner::find((int) $id);
+        if (!$partner) { Response::notFound(); return ''; }
+        $data = $this->collect();
+        // Preserve existing logo if neither file nor URL provided
+        if ($data['logo'] === null) {
+            $data['logo'] = $partner['logo'];
+        }
+        Partner::update((int) $id, $data);
+        View::flash('Partner saved.', 'success');
+        Response::redirect('/admin/partners');
+        return '';
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+    public function destroy(string $id): string
+    {
+        Csrf::requireValid();
+        Partner::delete((int) $id);
+        View::flash('Partner deleted.', 'info');
+        Response::redirect('/admin/partners');
+        return '';
+    }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @return array<string,mixed> */
+    private function collect(): array
+    {
+        $logo = null;
+        $upload = Request::file('logo_file');
+        if ($upload !== null) {
+            try {
+                $logo = ImageProcessor::store($upload);
+            } catch (\Throwable $e) {
+                View::flash('Logo upload failed: ' . $e->getMessage(), 'error');
+            }
+        }
+        if ($logo === null) {
+            $url = trim((string) Request::input('logo', ''));
+            $logo = $url !== '' ? $url : null;
+        }
+        return [
+            'name'       => trim((string) Request::input('name', '')),
+            'logo'       => $logo,
+            'url'        => trim((string) Request::input('url', '')) !== '' ? trim((string) Request::input('url', '')) : null,
+            'sort_order' => (int) Request::input('sort_order', 0),
+        ];
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

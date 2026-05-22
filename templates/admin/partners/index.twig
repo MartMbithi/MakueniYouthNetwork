@@ -1,0 +1,27 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Partners{% endblock %}
+{% block actions %}<a href="/admin/partners/create" class="admin-btn primary">+ New partner</a>{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th></th><th>Name</th><th>URL</th><th>Order</th><th></th></tr></thead>
+  <tbody>
+  {% for p in partners %}
+    <tr>
+      <td style="width:60px">{% if p.logo %}<img src="{{ p.logo }}" alt="" style="width:46px;height:46px;object-fit:contain;background:#f6f1e4;border-radius:6px;padding:4px">{% endif %}</td>
+      <td><a href="/admin/partners/{{ p.id }}/edit">{{ p.name }}</a></td>
+      <td>{% if p.url %}<a href="{{ p.url }}" target="_blank" style="color:var(--admin-accent-2)">{{ p.url|slice(0,40) }}{{ p.url|length > 40 ? '…' : '' }}</a>{% else %}—{% endif %}</td>
+      <td>{{ p.sort_order }}</td>
+      <td class="row-actions">
+        <a class="admin-btn small ghost" href="/admin/partners/{{ p.id }}/edit">Edit</a>
+        {{ h.delete_button('/admin/partners/' ~ p.id ~ '/delete') }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" style="text-align:center;color:var(--admin-muted);padding:24px">No partners yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

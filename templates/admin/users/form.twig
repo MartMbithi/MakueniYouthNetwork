@@ -1,0 +1,35 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}{{ mode == 'create' ? 'New user' : 'Edit user' }}{% endblock %}
+
+{% block content %}
+{{ h.errors(errors|default([])) }}
+
+<form method="post" action="{{ action }}" class="admin-form">
+  {{ csrf_field()|raw }}
+  <div class="panel">
+    <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" value="{{ user.name|default('') }}" required></div>
+    <div class="field" style="margin-top:16px"><label for="email">Email</label><input type="email" id="email" name="email" value="{{ user.email|default('') }}" required></div>
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="editor" {{ user.role == 'editor' ? 'selected' : '' }}>Editor — can manage content</option>
+          <option value="admin"  {{ user.role == 'admin'  ? 'selected' : '' }}>Admin — can also manage users</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="password">{{ mode == 'create' ? 'Password' : 'New password (blank = keep current)' }}</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" {{ mode == 'create' ? 'required' : '' }}>
+        <div class="help">Min. 8 characters.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="admin-btn primary">{{ mode == 'create' ? 'Create user' : 'Save changes' }}</button>
+    <a href="/admin/users" class="admin-btn ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

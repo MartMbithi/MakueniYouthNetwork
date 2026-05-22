@@ -130,63 +130,40 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers\Admin;
+
+use App\Core\Csrf;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
+use App\Models\Setting;
 
-$rootDir = dirname(__DIR__);
+final class SettingsController
+{
+    private const KEYS = [
+        'name', 'tagline', 'phone', 'email', 'address', 'po_box',
+        'facebook', 'twitter', 'linkedin',
+    ];
 
-require $rootDir . '/vendor/autoload.php';
+    public function edit(): string
+    {
+        $current = Setting::all();
+        return View::render('admin/settings/index.twig', [
+            'title'    => 'Settings',
+            'settings' => $current,
+        ]);
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
-
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
-
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public function update(): string
+    {
+        Csrf::requireValid();
+        $pairs = [];
+        foreach (self::KEYS as $k) {
+            $pairs[$k] = trim((string) Request::input($k, ''));
+        }
+        Setting::setMany($pairs);
+        View::flash('Settings saved.', 'success');
+        Response::redirect('/admin/settings');
+        return '';
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

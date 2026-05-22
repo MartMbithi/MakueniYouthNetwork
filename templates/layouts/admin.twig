@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% block title %}Admin{% endblock %} · {{ site.name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="admin">
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <a href="/admin" class="admin-brand" style="text-decoration:none">
+      <span class="mark">M</span>
+      <span><b>MYN</b><small>Admin panel</small></span>
+    </a>
+
+    <ul class="admin-nav">
+      <li><a href="/admin" class="{{ current_path == '/admin' ? 'is-active' }}">Dashboard</a></li>
+
+      <li class="nav-section">Content</li>
+      <li><a href="/admin/posts"    class="{{ current_path starts with '/admin/posts'    ? 'is-active' }}">Posts</a></li>
+      <li><a href="/admin/programs" class="{{ current_path starts with '/admin/programs' ? 'is-active' }}">Programs</a></li>
+      <li><a href="/admin/events"   class="{{ current_path starts with '/admin/events'   ? 'is-active' }}">Events</a></li>
+      <li><a href="/admin/pages"    class="{{ current_path starts with '/admin/pages'    ? 'is-active' }}">Pages</a></li>
+
+      <li class="nav-section">Site</li>
+      <li><a href="/admin/stats"    class="{{ current_path starts with '/admin/stats'    ? 'is-active' }}">Stats</a></li>
+      <li><a href="/admin/partners" class="{{ current_path starts with '/admin/partners' ? 'is-active' }}">Partners</a></li>
+      <li><a href="/admin/settings" class="{{ current_path starts with '/admin/settings' ? 'is-active' }}">Settings</a></li>
+
+      <li class="nav-section">Inbox</li>
+      <li><a href="/admin/messages"   class="{{ current_path starts with '/admin/messages'   ? 'is-active' }}">Messages{% if unread_count|default(0) > 0 %} <span class="badge">{{ unread_count }}</span>{% endif %}</a></li>
+      <li><a href="/admin/volunteers" class="{{ current_path starts with '/admin/volunteers' ? 'is-active' }}">Volunteers</a></li>
+      <li><a href="/admin/donations"  class="{{ current_path starts with '/admin/donations'  ? 'is-active' }}">Donations</a></li>
+
+      {% if auth and auth.role == 'admin' %}
+      <li class="nav-section">Admin</li>
+      <li><a href="/admin/users" class="{{ current_path starts with '/admin/users' ? 'is-active' }}">Users</a></li>
+      {% endif %}
+    </ul>
+
+    <div class="admin-user">
+      <div>
+        <div style="color:#fff;font-weight:600">{{ auth.name|default('—') }}</div>
+        <div>{{ auth.role|default('') }}</div>
+      </div>
+      <form method="post" action="/admin/logout" style="margin:0">
+        {{ csrf_field()|raw }}
+        <button type="submit" class="admin-btn small ghost" style="background:transparent;color:rgba(246,241,228,.7);border-color:rgba(246,241,228,.2)">Sign out</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    {% if flash is defined and flash|length > 0 %}
+      <div class="admin-flash">
+        {% for f in flash %}
+          <div class="flash {{ f.type|default('info') }}">{{ f.message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="admin-topbar">
+      <div>
+        <h1>{% block heading %}{{ block('title') }}{% endblock %}</h1>
+        {% block subtitle %}{% endblock %}
+      </div>
+      <div class="actions">
+        {% block actions %}{% endblock %}
+      </div>
+    </div>
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+</body>
+</html>

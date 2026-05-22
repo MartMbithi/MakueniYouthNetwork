@@ -130,63 +130,42 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Controllers\Admin;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
+use App\Models\Donation;
+use App\Models\Event;
+use App\Models\Message;
+use App\Models\Post;
+use App\Models\Volunteer;
 
-$rootDir = dirname(__DIR__);
+final class DashboardController
+{
+    public function index(): string
+    {
+        $pdo = Database::connection();
 
-require $rootDir . '/vendor/autoload.php';
+        $counts = [
+            'posts_total'         => (int) $pdo->query('SELECT COUNT(*) FROM posts')->fetchColumn(),
+            'posts_published'     => Post::publishedCount(),
+            'messages_unread'     => Message::unreadCount(),
+            'donations_pending'   => Donation::countByStatus('pending'),
+            'donations_completed' => Donation::countByStatus('completed'),
+            'volunteers'          => (int) $pdo->query('SELECT COUNT(*) FROM volunteers')->fetchColumn(),
+            'events_upcoming'     => count(Event::upcoming(50)),
+        ];
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+        $recent = [
+            'messages'   => array_slice(Message::all(10), 0, 5),
+            'volunteers' => array_slice(Volunteer::all(10), 0, 5),
+            'posts'      => array_slice(Post::all(), 0, 5),
+        ];
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
-
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
-
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
-
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+        return View::render('admin/dashboard.twig', [
+            'title'  => 'Dashboard',
+            'counts' => $counts,
+            'recent' => $recent,
+        ]);
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

@@ -130,63 +130,132 @@ declare(strict_types=1);
  *
  */
 
+namespace App\Models;
+
 use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
 
-$rootDir = dirname(__DIR__);
+final class Donation
+{
+    /** @param array<string,mixed> $data */
+    public static function create(array $data): int
+    {
+        $stmt = Database::connection()->prepare(
+            'INSERT INTO donations (donor_name, donor_phone, donor_email, amount, currency,
+                                    provider, reference, status)
+             VALUES (:name, :phone, :email, :amount, :currency, :provider, :reference, :status)'
+        );
+        $stmt->execute([
+            ':name'      => $data['donor_name']  ?? null,
+            ':phone'     => $data['donor_phone'] ?? null,
+            ':email'     => $data['donor_email'] ?? null,
+            ':amount'    => $data['amount'],
+            ':currency'  => $data['currency']    ?? 'KES',
+            ':provider'  => $data['provider']    ?? 'paystack',
+            ':reference' => $data['reference'],
+            ':status'    => $data['status']      ?? 'pending',
+        ]);
+        return (int) Database::connection()->lastInsertId();
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    /** @return array<string,mixed>|null */
+    public static function findByReference(string $reference): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM donations WHERE reference = :r LIMIT 1'
+        );
+        $stmt->execute([':r' => $reference]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    /** @return array<string,mixed>|null */
+    public static function find(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM donations WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    public static function markCompleted(string $reference, ?int $paystackId, ?string $gatewayResponse, ?string $channel): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE donations
+             SET status = :s, paystack_id = :pid, gateway_response = :gw, channel = :ch, paid_at = NOW()
+             WHERE reference = :ref'
+        );
+        $stmt->execute([
+            ':s'   => 'completed',
+            ':pid' => $paystackId,
+            ':gw'  => $gatewayResponse,
+            ':ch'  => $channel,
+            ':ref' => $reference,
+        ]);
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    public static function markFailed(string $reference, ?string $gatewayResponse): void
+    {
+        $stmt = Database::connection()->prepare(
+            'UPDATE donations SET status = :s, gateway_response = :gw WHERE reference = :ref'
+        );
+        $stmt->execute([
+            ':s'   => 'failed',
+            ':gw'  => $gatewayResponse,
+            ':ref' => $reference,
+        ]);
+    }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+    /** @return list<array<string,mixed>> */
+    public static function all(?string $status = null, ?string $from = null, ?string $to = null, int $limit = 500): array
+    {
+        $sql = 'SELECT * FROM donations WHERE 1=1';
+        $params = [];
+        if ($status !== null && $status !== '') {
+            $sql .= ' AND status = :s';
+            $params[':s'] = $status;
+        }
+        if ($from !== null && $from !== '') {
+            $sql .= ' AND created_at >= :from';
+            $params[':from'] = $from . ' 00:00:00';
+        }
+        if ($to !== null && $to !== '') {
+            $sql .= ' AND created_at <= :to';
+            $params[':to'] = $to . ' 23:59:59';
+        }
+        $sql .= ' ORDER BY created_at DESC LIMIT :lim';
+        $stmt = Database::connection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
+    }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+    public static function totalCompleted(?string $from = null, ?string $to = null): float
+    {
+        $sql = "SELECT COALESCE(SUM(amount),0) FROM donations WHERE status = 'completed'";
+        $params = [];
+        if ($from !== null && $from !== '') {
+            $sql .= ' AND created_at >= :from';
+            $params[':from'] = $from . ' 00:00:00';
+        }
+        if ($to !== null && $to !== '') {
+            $sql .= ' AND created_at <= :to';
+            $params[':to'] = $to . ' 23:59:59';
+        }
+        $stmt = Database::connection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->execute();
+        return (float) $stmt->fetchColumn();
+    }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    public static function countByStatus(string $status): int
+    {
+        $stmt = Database::connection()->prepare('SELECT COUNT(*) FROM donations WHERE status = :s');
+        $stmt->execute([':s' => $status]);
+        return (int) $stmt->fetchColumn();
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

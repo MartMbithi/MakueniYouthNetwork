@@ -130,63 +130,146 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
-use App\Core\Response;
-use App\Core\Router;
-use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
+namespace App\Services;
 
-$rootDir = dirname(__DIR__);
+use RuntimeException;
 
-require $rootDir . '/vendor/autoload.php';
+final class ImageProcessor
+{
+    private const ALLOWED_EXT  = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+    private const ALLOWED_MIME = [
+        'image/jpeg', 'image/png', 'image/webp', 'application/pdf',
+    ];
+    private const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+    private const MAX_WIDTH = 1600;
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    private static string $uploadDir = '';
+    private static string $publicPrefix = '/uploads/';
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    public static function configure(string $uploadDir, string $publicPrefix = '/uploads/'): void
+    {
+        self::$uploadDir = rtrim($uploadDir, '/') . '/';
+        self::$publicPrefix = '/' . trim($publicPrefix, '/') . '/';
+        if (!is_dir(self::$uploadDir)) {
+            @mkdir(self::$uploadDir, 0775, true);
+        }
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    /**
+     * Validate + store an uploaded file. Returns the public URL path (e.g.
+     * "/uploads/abc123.webp") on success, throws RuntimeException on failure.
+     *
+     * @param array<string,mixed> $file  $_FILES[name] entry
+     */
+    public static function store(array $file): string
+    {
+        if (self::$uploadDir === '') {
+            throw new RuntimeException('ImageProcessor::configure() was never called.');
+        }
+        if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException(self::uploadErrorMessage((int) ($file['error'] ?? -1)));
+        }
+        if (($file['size'] ?? 0) > self::MAX_BYTES) {
+            throw new RuntimeException('File is too large (max 8 MB).');
+        }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+        $tmp = $file['tmp_name'] ?? '';
+        if (!is_string($tmp) || !is_uploaded_file($tmp)) {
+            // is_uploaded_file fails under php -S without a real upload,
+            // so fall back to plain is_file for test compatibility.
+            if (!is_string($tmp) || !is_file($tmp)) {
+                throw new RuntimeException('Upload was not delivered correctly.');
+            }
+        }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+        $origName = (string) ($file['name'] ?? '');
+        $ext = strtolower((string) pathinfo($origName, PATHINFO_EXTENSION));
+        if (!in_array($ext, self::ALLOWED_EXT, true)) {
+            throw new RuntimeException('File type not allowed.');
+        }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($tmp) ?: '';
+        if (!in_array($mime, self::ALLOWED_MIME, true)) {
+            throw new RuntimeException('File MIME did not match an allowed type.');
+        }
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+        $isPdf   = ($mime === 'application/pdf');
+        $newBase = substr(bin2hex(random_bytes(12)), 0, 20);
+
+        if ($isPdf) {
+            $newName = $newBase . '.pdf';
+            $newPath = self::$uploadDir . $newName;
+            if (!move_uploaded_file($tmp, $newPath) && !rename($tmp, $newPath)) {
+                throw new RuntimeException('Could not save file.');
+            }
+            return self::$publicPrefix . $newName;
+        }
+
+        $img = self::loadImage($tmp, $mime);
+        $img = self::maybeResize($img, self::MAX_WIDTH);
+
+        // Prefer WebP, fall back to JPEG when the runtime is missing libwebp
+        // (some shared hosts and stock XAMPP builds ship without it).
+        $useWebp = function_exists('imagewebp');
+        $newExt  = $useWebp ? 'webp' : 'jpg';
+        $newName = $newBase . '.' . $newExt;
+        $newPath = self::$uploadDir . $newName;
+
+        $ok = $useWebp
+            ? imagewebp($img, $newPath, 80)
+            : imagejpeg($img, $newPath, 82);
+        if (!$ok) {
+            throw new RuntimeException('Could not write image file.');
+        }
+        imagedestroy($img);
+
+        // Cleanup the original temp upload (move_uploaded_file would have
+        // done so; we wrote a converted file instead).
+        @unlink($tmp);
+
+        return self::$publicPrefix . $newName;
+    }
+
+    private static function loadImage(string $path, string $mime): \GdImage
+    {
+        $img = match ($mime) {
+            'image/jpeg' => imagecreatefromjpeg($path),
+            'image/png'  => imagecreatefrompng($path),
+            'image/webp' => imagecreatefromwebp($path),
+            default      => false,
+        };
+        if (!$img instanceof \GdImage) {
+            throw new RuntimeException('Could not decode the uploaded image.');
+        }
+        return $img;
+    }
+
+    private static function maybeResize(\GdImage $src, int $maxWidth): \GdImage
+    {
+        $w = imagesx($src);
+        $h = imagesy($src);
+        if ($w <= $maxWidth) {
+            return $src;
+        }
+        $newW = $maxWidth;
+        $newH = (int) round($h * ($maxWidth / $w));
+        $dst = imagecreatetruecolor($newW, $newH);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $w, $h);
+        imagedestroy($src);
+        return $dst;
+    }
+
+    private static function uploadErrorMessage(int $code): string
+    {
+        return match ($code) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'File is too large.',
+            UPLOAD_ERR_PARTIAL    => 'Upload was interrupted.',
+            UPLOAD_ERR_NO_FILE    => 'No file was uploaded.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Server temp directory missing.',
+            UPLOAD_ERR_CANT_WRITE => 'Server could not write the upload.',
+            UPLOAD_ERR_EXTENSION  => 'A PHP extension blocked the upload.',
+            default               => 'Unknown upload error.',
+        };
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

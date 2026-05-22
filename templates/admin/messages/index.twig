@@ -1,0 +1,32 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th></th><th>From</th><th>Subject</th><th>Received</th><th></th></tr></thead>
+  <tbody>
+  {% for m in messages %}
+    <tr style="{{ m.is_read ? '' : 'background:#fffaef' }}">
+      <td style="width:24px">{% if not m.is_read %}<span style="display:inline-block;width:10px;height:10px;background:var(--admin-amber);border-radius:50%"></span>{% endif %}</td>
+      <td><strong>{{ m.name }}</strong><br><a href="mailto:{{ m.email }}" style="color:var(--admin-muted);font-size:.82rem">{{ m.email }}</a></td>
+      <td>
+        <div style="font-weight:600">{{ m.subject|default('(no subject)') }}</div>
+        <div style="color:var(--admin-muted);font-size:.86rem;max-width:520px">{{ m.body|slice(0,180) }}{{ m.body|length > 180 ? '…' : '' }}</div>
+      </td>
+      <td>{{ m.created_at|date('M j, Y · g:ia') }}</td>
+      <td class="row-actions">
+        <form method="post" action="/admin/messages/{{ m.id }}/toggle" style="display:inline">
+          {{ csrf_field()|raw }}
+          <button type="submit" class="admin-btn small ghost">{{ m.is_read ? 'Mark unread' : 'Mark read' }}</button>
+        </form>
+        {{ h.delete_button('/admin/messages/' ~ m.id ~ '/delete') }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" style="text-align:center;color:var(--admin-muted);padding:24px">No messages yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

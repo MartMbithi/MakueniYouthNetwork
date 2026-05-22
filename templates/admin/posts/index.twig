@@ -1,0 +1,28 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Posts{% endblock %}
+{% block actions %}<a href="/admin/posts/create" class="admin-btn primary">+ New post</a>{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Category</th><th>Published</th><th></th></tr></thead>
+  <tbody>
+  {% for p in posts %}
+    <tr>
+      <td><a href="/admin/posts/{{ p.id }}/edit">{{ p.title }}</a></td>
+      <td><code style="font-size:.82rem;color:var(--admin-muted)">/impact/{{ p.slug }}</code></td>
+      <td>{{ h.status_pill(p.status) }}</td>
+      <td>{{ p.category_name|default('—') }}</td>
+      <td>{{ p.published_at ? p.published_at|date('M j, Y') : '—' }}</td>
+      <td class="row-actions">
+        <a class="admin-btn small ghost" href="/impact/{{ p.slug }}" target="_blank">View</a>
+        {{ h.delete_button('/admin/posts/' ~ p.id ~ '/delete') }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" style="text-align:center;color:var(--admin-muted);padding:24px">No posts yet. <a href="/admin/posts/create">Create the first one</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Events{% endblock %}
+{% block actions %}<a href="/admin/events/create" class="admin-btn primary">+ New event</a>{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th>Title</th><th>When</th><th>Venue</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for e in events %}
+    <tr>
+      <td><a href="/admin/events/{{ e.id }}/edit">{{ e.title }}</a></td>
+      <td>{{ e.starts_at|date('M j, Y · g:ia') }}</td>
+      <td>{{ e.venue|default('—') }}</td>
+      <td>{{ h.status_pill(e.status) }}</td>
+      <td class="row-actions">
+        <a class="admin-btn small ghost" href="/events/{{ e.slug }}" target="_blank">View</a>
+        {{ h.delete_button('/admin/events/' ~ e.id ~ '/delete') }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" style="text-align:center;color:var(--admin-muted);padding:24px">No events yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

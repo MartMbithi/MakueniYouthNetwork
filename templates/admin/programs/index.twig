@@ -1,0 +1,28 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}Programs{% endblock %}
+{% block actions %}<a href="/admin/programs/create" class="admin-btn primary">+ New program</a>{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th>Title</th><th>Slug</th><th>Parent</th><th>Status</th><th>Order</th><th></th></tr></thead>
+  <tbody>
+  {% for p in programs %}
+    <tr>
+      <td><a href="/admin/programs/{{ p.id }}/edit">{{ p.title }}</a></td>
+      <td><code style="font-size:.82rem;color:var(--admin-muted)">/programs/{{ p.slug }}</code></td>
+      <td>{{ p.parent_id ? '#' ~ p.parent_id : '—' }}</td>
+      <td>{{ h.status_pill(p.status) }}</td>
+      <td>{{ p.sort_order }}</td>
+      <td class="row-actions">
+        <a class="admin-btn small ghost" href="/programs/{{ p.slug }}" target="_blank">View</a>
+        {{ h.delete_button('/admin/programs/' ~ p.id ~ '/delete') }}
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" style="text-align:center;color:var(--admin-muted);padding:24px">No programs yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

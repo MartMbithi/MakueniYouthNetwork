@@ -134,12 +134,86 @@ use App\Core\Auth;
 
 /** @var \App\Core\Router $router */
 
-$router->get('/admin/login', static function (): string {
-    return '<form method="post" action="/admin/login"><h1>Admin login</h1>'
-        . '<p>Login UI ships in M4.1.</p></form>';
-});
+// Public auth pages
+$router->get('/admin/login',  'Admin\AuthController@loginForm');
+$router->post('/admin/login', 'Admin\AuthController@login');
+$router->post('/admin/logout','Admin\AuthController@logout');
 
-$router->get('/admin', static function (): string {
+// Everything below requires login. We guard once here for the entire
+// remainder of the admin surface.
+if (str_starts_with(\App\Core\Request::path(), '/admin') && \App\Core\Request::path() !== '/admin/login') {
     Auth::requireLogin();
-    return '<h1>Admin dashboard</h1><p>Coming in M4.2.</p>';
-});
+}
+
+// Dashboard
+$router->get('/admin', 'Admin\DashboardController@index');
+
+// Posts
+$router->get('/admin/posts',            'Admin\PostController@index');
+$router->get('/admin/posts/create',     'Admin\PostController@create');
+$router->post('/admin/posts',           'Admin\PostController@store');
+$router->get('/admin/posts/{id}/edit',  'Admin\PostController@edit');
+$router->post('/admin/posts/{id}',      'Admin\PostController@update');
+$router->post('/admin/posts/{id}/delete','Admin\PostController@destroy');
+
+// Programs
+$router->get('/admin/programs',             'Admin\ProgramController@index');
+$router->get('/admin/programs/create',      'Admin\ProgramController@create');
+$router->post('/admin/programs',            'Admin\ProgramController@store');
+$router->get('/admin/programs/{id}/edit',   'Admin\ProgramController@edit');
+$router->post('/admin/programs/{id}',       'Admin\ProgramController@update');
+$router->post('/admin/programs/{id}/delete','Admin\ProgramController@destroy');
+
+// Events
+$router->get('/admin/events',             'Admin\EventController@index');
+$router->get('/admin/events/create',      'Admin\EventController@create');
+$router->post('/admin/events',            'Admin\EventController@store');
+$router->get('/admin/events/{id}/edit',   'Admin\EventController@edit');
+$router->post('/admin/events/{id}',       'Admin\EventController@update');
+$router->post('/admin/events/{id}/delete','Admin\EventController@destroy');
+
+// Pages
+$router->get('/admin/pages',             'Admin\PageController@index');
+$router->get('/admin/pages/create',      'Admin\PageController@create');
+$router->post('/admin/pages',            'Admin\PageController@store');
+$router->get('/admin/pages/{id}/edit',   'Admin\PageController@edit');
+$router->post('/admin/pages/{id}',       'Admin\PageController@update');
+$router->post('/admin/pages/{id}/delete','Admin\PageController@destroy');
+
+// Stats
+$router->get('/admin/stats',             'Admin\StatController@index');
+$router->get('/admin/stats/create',      'Admin\StatController@create');
+$router->post('/admin/stats',            'Admin\StatController@store');
+$router->get('/admin/stats/{id}/edit',   'Admin\StatController@edit');
+$router->post('/admin/stats/{id}',       'Admin\StatController@update');
+$router->post('/admin/stats/{id}/delete','Admin\StatController@destroy');
+
+// Partners
+$router->get('/admin/partners',             'Admin\PartnerController@index');
+$router->get('/admin/partners/create',      'Admin\PartnerController@create');
+$router->post('/admin/partners',            'Admin\PartnerController@store');
+$router->get('/admin/partners/{id}/edit',   'Admin\PartnerController@edit');
+$router->post('/admin/partners/{id}',       'Admin\PartnerController@update');
+$router->post('/admin/partners/{id}/delete','Admin\PartnerController@destroy');
+
+// Settings
+$router->get('/admin/settings',  'Admin\SettingsController@edit');
+$router->post('/admin/settings', 'Admin\SettingsController@update');
+
+// Inboxes
+$router->get('/admin/messages',                'Admin\MessageController@index');
+$router->post('/admin/messages/{id}/toggle',   'Admin\MessageController@toggleRead');
+$router->post('/admin/messages/{id}/delete',   'Admin\MessageController@destroy');
+
+$router->get('/admin/volunteers',            'Admin\VolunteerController@index');
+$router->get('/admin/volunteers/export.csv', 'Admin\VolunteerController@exportCsv');
+
+$router->get('/admin/donations',             'Admin\DonationController@index');
+
+// Users (admin only — enforced inside controller methods)
+$router->get('/admin/users',              'Admin\UserController@index');
+$router->get('/admin/users/create',       'Admin\UserController@create');
+$router->post('/admin/users',             'Admin\UserController@store');
+$router->get('/admin/users/{id}/edit',    'Admin\UserController@edit');
+$router->post('/admin/users/{id}',        'Admin\UserController@update');
+$router->post('/admin/users/{id}/delete', 'Admin\UserController@destroy');

@@ -130,63 +130,145 @@ declare(strict_types=1);
  *
  */
 
-use App\Core\Database;
+namespace App\Controllers\Admin;
+
+use App\Core\Auth;
+use App\Core\Csrf;
+use App\Core\Request;
 use App\Core\Response;
-use App\Core\Router;
 use App\Core\View;
-use App\Services\ImageProcessor;
-use App\Services\Mailer;
+use App\Models\User;
 
-$rootDir = dirname(__DIR__);
+final class UserController
+{
+    public function index(): string
+    {
+        Auth::requireRole('admin');
+        return View::render('admin/users/index.twig', [
+            'title' => 'Users',
+            'users' => User::all(),
+        ]);
+    }
 
-require $rootDir . '/vendor/autoload.php';
+    public function create(): string
+    {
+        Auth::requireRole('admin');
+        return View::render('admin/users/form.twig', [
+            'title'  => 'New user',
+            'user'   => ['id' => null, 'name' => '', 'email' => '', 'role' => 'editor'],
+            'action' => '/admin/users',
+            'mode'   => 'create',
+        ]);
+    }
 
-/** @var array $config */
-$config = require $rootDir . '/config/config.php';
+    public function store(): string
+    {
+        Auth::requireRole('admin');
+        Csrf::requireValid();
+        $data = $this->collect();
+        $errors = $this->validate($data, null);
+        if ($errors !== []) {
+            return $this->renderForm($data, $errors, 'create', '/admin/users');
+        }
+        User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => $data['password'],
+            'role'     => $data['role'],
+        ]);
+        View::flash('User created.', 'success');
+        Response::redirect('/admin/users');
+        return '';
+    }
 
-$isLocal = ($config['app']['env'] ?? 'production') === 'local';
+    public function edit(string $id): string
+    {
+        Auth::requireRole('admin');
+        $user = User::find((int) $id);
+        if (!$user) { Response::notFound(); return ''; }
+        return View::render('admin/users/form.twig', [
+            'title'  => 'Edit user',
+            'user'   => $user,
+            'action' => '/admin/users/' . $id,
+            'mode'   => 'edit',
+        ]);
+    }
 
-error_reporting(E_ALL);
-ini_set('display_errors', $isLocal ? '1' : '0');
-ini_set('log_errors', '1');
-ini_set('error_log', $rootDir . '/storage/logs/app.log');
+    public function update(string $id): string
+    {
+        Auth::requireRole('admin');
+        Csrf::requireValid();
+        $user = User::find((int) $id);
+        if (!$user) { Response::notFound(); return ''; }
 
-Database::configure($config['db']);
-View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+        $data = $this->collect();
+        $errors = $this->validate($data, (int) $id);
+        if ($errors !== []) {
+            return $this->renderForm(array_merge($user, $data), $errors, 'edit', '/admin/users/' . $id);
+        }
+        User::update((int) $id, [
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'role'     => $data['role'],
+            'password' => $data['password'] !== '' ? $data['password'] : null,
+        ]);
+        View::flash('User saved.', 'success');
+        Response::redirect('/admin/users');
+        return '';
+    }
 
-set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
-    error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()
-        . ' in ' . $e->getFile() . ':' . $e->getLine() . PHP_EOL . $e->getTraceAsString());
-    Response::serverError($e, $isLocal);
-});
+    public function destroy(string $id): string
+    {
+        Auth::requireRole('admin');
+        Csrf::requireValid();
+        $current = Auth::user();
+        if ($current && (int) $current['id'] === (int) $id) {
+            View::flash('You cannot delete your own account.', 'error');
+            Response::redirect('/admin/users');
+        }
+        User::delete((int) $id);
+        View::flash('User deleted.', 'info');
+        Response::redirect('/admin/users');
+        return '';
+    }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    /** @return array<string,mixed> */
+    private function collect(): array
+    {
+        return [
+            'name'     => trim((string) Request::input('name', '')),
+            'email'    => trim((string) Request::input('email', '')),
+            'role'     => Request::input('role', 'editor') === 'admin' ? 'admin' : 'editor',
+            'password' => (string) Request::input('password', ''),
+        ];
+    }
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'domain'   => '',
-        'secure'   => $isHttps,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_name('myn_session');
-    session_start();
+    /** @return array<string,array<int,string>> */
+    private function validate(array $data, ?int $id): array
+    {
+        $errors = [];
+        if ($data['name'] === '') $errors['name'][] = 'Name is required.';
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $errors['email'][] = 'Valid email required.';
+        if ($id === null && $data['password'] === '') $errors['password'][] = 'Password is required for new users.';
+        if ($data['password'] !== '' && strlen($data['password']) < 8) {
+            $errors['password'][] = 'Password must be at least 8 characters.';
+        }
+        // Email uniqueness
+        $byEmail = User::findByEmail($data['email']);
+        if ($byEmail !== null && (int) $byEmail['id'] !== ($id ?? 0)) {
+            $errors['email'][] = 'That email is already taken.';
+        }
+        return $errors;
+    }
+
+    private function renderForm(array $user, array $errors, string $mode, string $action): string
+    {
+        return View::render('admin/users/form.twig', [
+            'title'  => $mode === 'create' ? 'New user' : 'Edit user',
+            'user'   => $user,
+            'action' => $action,
+            'mode'   => $mode,
+            'errors' => $errors,
+        ]);
+    }
 }
-
-$router = new Router();
-
-// Admin routes are registered FIRST so explicit /admin/* routes win against
-// the catch-all GET /{slug} (page lookup) in routes/web.php.
-require $rootDir . '/routes/admin.php';
-require $rootDir . '/routes/web.php';
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$uri    = $_SERVER['REQUEST_URI'] ?? '/';
-$path   = parse_url($uri, PHP_URL_PATH) ?: '/';
-
-$router->dispatch($method, $path);

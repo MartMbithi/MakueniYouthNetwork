@@ -1,0 +1,73 @@
+{% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
+
+{% block title %}{{ mode == 'create' ? 'New post' : 'Edit post' }}{% endblock %}
+
+{% block content %}
+{{ h.errors(errors|default([])) }}
+
+<form method="post" action="{{ action }}" enctype="multipart/form-data" class="admin-form">
+  {{ csrf_field()|raw }}
+
+  <div class="panel">
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" value="{{ post.title|default('') }}" required>
+    </div>
+
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="slug">Slug</label>
+        <input type="text" id="slug" name="slug" value="{{ post.slug|default('') }}" placeholder="auto-generated from title">
+        <div class="help">URL: <code>/impact/{{ post.slug|default('your-slug') }}</code></div>
+      </div>
+      <div class="field">
+        <label for="category_id">Category</label>
+        <select id="category_id" name="category_id">
+          <option value="">— none —</option>
+          {% for c in categories %}
+            <option value="{{ c.id }}" {{ post.category_id == c.id ? 'selected' : '' }}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="excerpt">Excerpt <span style="color:var(--admin-muted);font-weight:400">(shown in lists; optional)</span></label>
+      <textarea id="excerpt" name="excerpt" style="min-height:80px">{{ post.excerpt|default('') }}</textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="body">Body (HTML)</label>
+      <textarea id="body" name="body" required>{{ post.body|default('') }}</textarea>
+      <div class="help">Plain HTML. A rich-text editor will be wired in once we point the project at TinyMCE / Editor.js.</div>
+    </div>
+
+    <div class="field-row" style="margin-top:16px">
+      <div class="field">
+        <label for="cover_image">Cover image URL</label>
+        <input type="url" id="cover_image" name="cover_image" value="{{ post.cover_image|default('') }}">
+      </div>
+      <div class="field">
+        <label for="cover_image_file">…or upload (jpg/png/webp)</label>
+        <input type="file" id="cover_image_file" name="cover_image_file" accept="image/jpeg,image/png,image/webp">
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label for="published_at">Publish date/time <span style="color:var(--admin-muted);font-weight:400">(blank = now)</span></label>
+      <input type="datetime-local" id="published_at" name="published_at" value="{{ post.published_at ? post.published_at|date('Y-m-d\\TH:i') : '' }}">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" name="action" value="draft"   class="admin-btn ghost">Save draft</button>
+    <button type="submit" name="action" value="publish" class="admin-btn primary">{{ post.status == 'published' ? 'Update' : 'Publish' }}</button>
+    {% if post.id %}
+      <a href="/impact/{{ post.slug }}" target="_blank" class="admin-btn amber">View live →</a>
+      <span style="flex:1"></span>
+      {{ h.delete_button('/admin/posts/' ~ post.id ~ '/delete') }}
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

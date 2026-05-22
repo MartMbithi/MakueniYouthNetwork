@@ -1,0 +1,23 @@
+{% extends 'layouts/admin.twig' %}
+
+{% block title %}Volunteers{% endblock %}
+{% block actions %}<a href="/admin/volunteers/export.csv" class="admin-btn primary">Export CSV</a>{% endblock %}
+
+{% block content %}
+<table class="admin-table">
+  <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Interest</th><th>Received</th></tr></thead>
+  <tbody>
+  {% for v in volunteers %}
+    <tr>
+      <td><strong>{{ v.full_name }}</strong>{% if v.message %}<div style="color:var(--admin-muted);font-size:.84rem;max-width:380px">{{ v.message|slice(0,160) }}{{ v.message|length > 160 ? '…' : '' }}</div>{% endif %}</td>
+      <td><a href="mailto:{{ v.email }}">{{ v.email }}</a></td>
+      <td>{% if v.phone %}<a href="tel:{{ v.phone }}">{{ v.phone }}</a>{% else %}—{% endif %}</td>
+      <td>{{ v.interest|default('—') }}</td>
+      <td>{{ v.created_at|date('M j, Y') }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5" style="text-align:center;color:var(--admin-muted);padding:24px">No volunteer applications yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
