@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Makueni Youth Network — Youth-owned. Youth-led. Youth-driven.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#173d2e;        /* deep forest */
+  --green-2:#1f5340;      /* mid green */
+  --amber:#e89a2c;        /* warm ochre */
+  --clay:#c4502c;         /* terracotta accent */
+  --cream:#f6f1e4;        /* paper */
+  --cream-2:#efe7d3;
+  --ink:#1c1b16;          /* near-black text */
+  --muted:#5b5a4f;
+  --line:rgba(28,27,22,.14);
+  --maxw:1240px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Hanken Grotesk',sans-serif;
+  background:var(--cream);color:var(--ink);
+  -webkit-font-smoothing:antialiased;line-height:1.6;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4{font-family:'Fraunces',serif;font-weight:600;line-height:1.06;letter-spacing:-.015em}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px}
+.eyebrow{
+  font-family:'Hanken Grotesk',sans-serif;font-weight:700;
+  font-size:.74rem;letter-spacing:.22em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.eyebrow::before{content:"";width:26px;height:2px;background:var(--amber);display:inline-block}
+
+/* ---------- HEADER ---------- */
+header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(246,241,228,.86);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+.brand{display:flex;align-items:center;gap:12px;font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem}
+.brand .mark{
+  width:42px;height:42px;border-radius:50%;
+  background:var(--green);color:var(--cream);
+  display:grid;place-items:center;font-size:1.05rem;font-weight:700;
+  flex-shrink:0;
+}
+.brand small{display:block;font-family:'Hanken Grotesk';font-weight:500;font-size:.66rem;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.menu{display:flex;gap:34px;list-style:none;font-weight:500;font-size:.92rem}
+.menu a{padding:6px 0;position:relative;transition:color .2s}
+.menu a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:2px;
+  background:var(--amber);transition:width .25s}
+.menu a:hover{color:var(--green-2)}
+.menu a:hover::after{width:100%}
+.nav-cta{display:flex;align-items:center;gap:18px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-weight:600;font-size:.9rem;padding:13px 24px;border-radius:100px;
+  transition:transform .18s,box-shadow .2s,background .2s;
+}
+.btn-amber{background:var(--amber);color:var(--green)}
+.btn-amber:hover{transform:translateY(-2px);box-shadow:0 10px 22px -10px rgba(232,154,44,.8)}
+.btn-green{background:var(--green);color:var(--cream)}
+.btn-green:hover{transform:translateY(-2px);box-shadow:0 12px 26px -12px rgba(23,61,46,.7)}
+.btn-ghost{border:1.5px solid var(--ink);color:var(--ink)}
+.btn-ghost:hover{background:var(--ink);color:var(--cream)}
+.burger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:0}
+.burger span{width:24px;height:2px;background:var(--ink)}
+
+/* ---------- HERO ---------- */
+.hero{
+  position:relative;padding:78px 0 96px;
+  background:
+    radial-gradient(900px 480px at 88% -8%,rgba(232,154,44,.22),transparent 60%),
+    radial-gradient(700px 600px at -6% 100%,rgba(31,83,64,.16),transparent 55%);
+  overflow:hidden;
+}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+.hero h1{font-size:clamp(2.9rem,5.6vw,4.6rem)}
+.hero h1 em{font-style:italic;color:var(--clay)}
+.hero h1 .ul{
+  background:linear-gradient(transparent 64%,rgba(232,154,44,.5) 64%);
+}
+.hero p.lead{font-size:1.12rem;color:var(--muted);max-width:30rem;margin:24px 0 32px}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+.hero-tags{display:flex;gap:10px;margin-top:34px;flex-wrap:wrap}
+.tag{
+  font-size:.78rem;font-weight:600;padding:7px 14px;border-radius:100px;
+  border:1px solid var(--line);background:rgba(255,255,255,.5);
+}
+.tag b{color:var(--clay)}
+/* hero visual */
+.hero-visual{position:relative}
+.hero-photo{
+  border-radius:26px 26px 90px 26px;overflow:hidden;
+  border:1px solid var(--line);box-shadow:0 40px 70px -40px rgba(23,61,46,.5);
+  aspect-ratio:4/4.4;background:var(--green-2);
+}
+.hero-photo img{width:100%;height:100%;object-fit:cover}
+.hero-badge{
+  position:absolute;left:-26px;bottom:38px;
+  background:var(--green);color:var(--cream);
+  padding:20px 24px;border-radius:20px;width:206px;
+  box-shadow:0 24px 40px -22px rgba(23,61,46,.8);
+}
+.hero-badge .n{font-family:'Fraunces';font-size:2.6rem;font-weight:600;line-height:1;color:var(--amber)}
+.hero-badge p{font-size:.82rem;margin-top:6px;color:rgba(246,241,228,.82)}
+.hero-dots{
+  position:absolute;top:-14px;right:-10px;width:104px;height:104px;
+  background-image:radial-gradient(var(--amber) 2px,transparent 2.2px);
+  background-size:16px 16px;opacity:.6;z-index:-1;
+}
+
+/* ---------- MARQUEE STATS ---------- */
+.stripe{background:var(--green);color:var(--cream);padding:46px 0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;text-align:center}
+.stat .n{font-family:'Fraunces';font-size:clamp(2.2rem,3.4vw,3rem);color:var(--amber);font-weight:600}
+.stat p{font-size:.86rem;color:rgba(246,241,228,.78);margin-top:4px;letter-spacing:.02em}
+.stat{position:relative}
+.stat:not(:last-child)::after{content:"";position:absolute;right:-15px;top:14%;height:72%;
+  width:1px;background:rgba(246,241,228,.18)}
+
+/* ---------- SECTION SHELL ---------- */
+section.pad{padding:104px 0}
+.sec-head{max-width:42rem;margin-bottom:52px}
+.sec-head h2{font-size:clamp(2.1rem,3.6vw,3rem);margin-top:16px}
+.sec-head p{color:var(--muted);margin-top:14px;font-size:1.04rem}
+
+/* ---------- PROGRAMS ---------- */
+.prog-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.prog{
+  background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;
+  display:flex;flex-direction:column;transition:transform .22s,box-shadow .22s;
+}
+.prog:hover{transform:translateY(-6px);box-shadow:0 30px 50px -34px rgba(23,61,46,.55)}
+.prog-img{aspect-ratio:16/10;overflow:hidden;background:var(--cream-2);position:relative}
+.prog-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.prog:hover .prog-img img{transform:scale(1.06)}
+.prog-num{
+  position:absolute;top:14px;left:14px;background:var(--cream);
+  font-family:'Fraunces';font-weight:600;font-size:.9rem;
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+}
+.prog-body{padding:26px 24px 28px;display:flex;flex-direction:column;flex:1}
+.prog-body h3{font-size:1.34rem;margin-bottom:10px}
+.prog-body p{color:var(--muted);font-size:.95rem;flex:1}
+.prog-link{
+  margin-top:18px;font-weight:600;font-size:.9rem;color:var(--green-2);
+  display:inline-flex;align-items:center;gap:7px;
+}
+.prog-link span{transition:transform .2s}
+.prog:hover .prog-link span{transform:translateX(5px)}
+
+/* ---------- ABOUT (split) ---------- */
+.about{background:var(--cream-2)}
+.about-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:60px;align-items:center}
+.about-visual{position:relative}
+.about-visual .frame{
+  border-radius:24px;overflow:hidden;border:1px solid var(--line);
+  aspect-ratio:5/5.6;box-shadow:0 36px 60px -42px rgba(23,61,46,.55);
+}
+.about-visual .frame img{width:100%;height:100%;object-fit:cover}
+.about-visual .est{
+  position:absolute;right:-22px;top:-22px;background:var(--clay);color:var(--cream);
+  font-family:'Fraunces';font-weight:600;text-align:center;
+  width:118px;height:118px;border-radius:50%;display:grid;place-content:center;
+  box-shadow:0 18px 30px -16px rgba(196,80,44,.8);
+}
+.about-visual .est b{font-size:1.9rem;line-height:1}
+.about-visual .est small{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase}
+.about-text h2{font-size:clamp(2rem,3.4vw,2.8rem);margin:16px 0 18px}
+.about-text p{color:var(--muted);margin-bottom:16px}
+.vm-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}
+.vm{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px 22px}
+.vm .ic{font-size:1.3rem}
+.vm h4{font-size:1.05rem;margin:10px 0 6px;font-family:'Hanken Grotesk';font-weight:700;letter-spacing:0}
+.vm p{font-size:.9rem;margin:0;color:var(--muted)}
+.values{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.values span{
+  background:var(--green);color:var(--cream);font-weight:600;font-size:.84rem;
+  padding:8px 16px;border-radius:100px;
+}
+
+/* ---------- NEWS ---------- */
+.news-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:24px}
+.news{
+  border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#fff;
+  display:flex;flex-direction:column;transition:transform .2s;
+}
+.news:hover{transform:translateY(-5px)}
+.news.feature{grid-row:span 2;flex-direction:column}
+.news-img{position:relative;overflow:hidden;background:var(--cream-2)}
+.news-img img{width:100%;height:100%;object-fit:cover}
+.news:not(.feature) .news-img{aspect-ratio:16/9}
+.news.feature .news-img{aspect-ratio:16/12}
+.news-date{
+  position:absolute;top:12px;left:12px;background:var(--cream);
+  text-align:center;border-radius:10px;padding:7px 11px;line-height:1;
+}
+.news-date b{font-family:'Fraunces';font-size:1.15rem;display:block}
+.news-date small{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.news-body{padding:20px 20px 22px;flex:1;display:flex;flex-direction:column}
+.news-cat{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--clay)}
+.news-body h3{font-size:1.1rem;margin:8px 0;font-weight:600}
+.news.feature .news-body h3{font-size:1.6rem}
+.news-body p{font-size:.9rem;color:var(--muted);flex:1}
+.news-more{margin-top:14px;font-weight:600;font-size:.86rem;color:var(--green-2)}
+
+/* ---------- PARTNERS ---------- */
+.partners{background:var(--green);color:var(--cream)}
+.partners .sec-head h2{color:var(--cream)}
+.partners .eyebrow{color:var(--amber)}
+.logos{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-top:10px}
+.logo-chip{
+  background:rgba(246,241,228,.07);border:1px solid rgba(246,241,228,.16);
+  border-radius:14px;aspect-ratio:5/3;display:grid;place-items:center;
+  padding:14px;font-weight:600;font-size:.78rem;text-align:center;
+  color:rgba(246,241,228,.7);transition:background .2s,color .2s;
+}
+.logo-chip:hover{background:rgba(246,241,228,.13);color:var(--cream)}
+
+/* ---------- CTA BAND ---------- */
+.cta{
+  margin:0 auto;
+  background:
+    radial-gradient(600px 300px at 85% 20%,rgba(232,154,44,.3),transparent 60%),
+    var(--clay);
+  color:var(--cream);border-radius:30px;padding:66px 56px;
+  display:grid;grid-template-columns:1.4fr .6fr;gap:40px;align-items:center;
+}
+.cta h2{font-size:clamp(2rem,3.4vw,2.9rem);color:var(--cream)}
+.cta p{margin-top:14px;color:rgba(246,241,228,.85);max-width:34rem}
+.cta-actions{display:flex;flex-direction:column;gap:12px}
+.cta .btn-amber{justify-content:center}
+.cta .btn-light{background:var(--cream);color:var(--clay);justify-content:center}
+.cta .btn-light:hover{transform:translateY(-2px)}
+
+/* ---------- FOOTER ---------- */
+footer{background:var(--green);color:rgba(246,241,228,.74);padding:74px 0 32px;margin-top:104px}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.3fr;gap:42px}
+footer h4{color:var(--cream);font-family:'Hanken Grotesk';font-weight:700;
+  font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+footer .brand{color:var(--cream);margin-bottom:16px}
+footer ul{list-style:none;display:flex;flex-direction:column;gap:10px;font-size:.92rem}
+footer ul a:hover{color:var(--amber)}
+.foot-about{font-size:.92rem;max-width:23rem}
+.socials{display:flex;gap:10px;margin-top:18px}
+.socials a{
+  width:38px;height:38px;border-radius:50%;border:1px solid rgba(246,241,228,.22);
+  display:grid;place-items:center;font-size:.8rem;font-weight:700;transition:.2s;
+}
+.socials a:hover{background:var(--amber);color:var(--green);border-color:var(--amber)}
+.foot-contact p{font-size:.92rem;margin-bottom:10px}
+.foot-bottom{
+  border-top:1px solid rgba(246,241,228,.14);margin-top:48px;padding-top:24px;
+  display:flex;justify-content:space-between;font-size:.82rem;flex-wrap:wrap;gap:10px;
+}
+
+/* ---------- REVEAL ANIM ---------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:980px){
+  .hero-grid,.about-grid,.cta{grid-template-columns:1fr}
+  .hero-visual{order:-1;max-width:440px}
+  .prog-grid,.logos{grid-template-columns:1fr 1fr}
+  .news-grid{grid-template-columns:1fr 1fr}
+  .news.feature{grid-row:auto;grid-column:1/-1}
+  .stats{grid-template-columns:1fr 1fr;gap:34px 20px}
+  .stat::after{display:none}
+  .foot-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:680px){
+  .wrap{padding:0 20px}
+  .menu,.nav-cta .btn-ghost{display:none}
+  .burger{display:flex}
+  section.pad{padding:72px 0}
+  .prog-grid,.logos,.news-grid,.vm-grid,.foot-grid{grid-template-columns:1fr}
+  .cta{padding:44px 26px}
+  .hero-badge{left:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="wrap nav">
+    <a href="#" class="brand">
+      <span class="mark">M</span>
+      <span>Makueni Youth Network<small>Wote · Makueni County</small></span>
+    </a>
+    <ul class="menu">
+      <li><a href="#programs">Our Programs</a></li>
+      <li><a href="#about">Who We Are</a></li>
+      <li><a href="#news">Our Impact</a></li>
+      <li><a href="#get-involved">Get Involved</a></li>
+      <li><a href="#footer">Contact</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#get-involved" class="btn btn-ghost">Volunteer</a>
+      <a href="#cta" class="btn btn-amber">Donate ♥</a>
+      <button class="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy reveal">
+      <span class="eyebrow">A movement since 2014</span>
+      <h1>Young people, <em>leading</em> the change <span class="ul">Makueni</span> deserves.</h1>
+      <p class="lead">We mobilize, collaborate, empower and transform youth to take their rightful place in decision-making — across governance, education and enterprise.</p>
+      <div class="hero-actions">
+        <a href="#programs" class="btn btn-green">Explore our programs</a>
+        <a href="#get-involved" class="btn btn-ghost">Join the network</a>
+      </div>
+      <div class="hero-tags">
+        <span class="tag"><b>Youth-owned.</b></span>
+        <span class="tag"><b>Youth-led.</b></span>
+        <span class="tag"><b>Youth-driven.</b></span>
+      </div>
+    </div>
+    <div class="hero-visual reveal">
+      <div class="hero-dots"></div>
+      <div class="hero-photo">
+        <img src="https://makueniyouth.org/wp-content/uploads/2025/05/Makueni_Youths.png" alt="Makueni youth in a civic engagement forum" loading="lazy">
+      </div>
+      <div class="hero-badge">
+        <div class="n">10+</div>
+        <p>years building youth voice & leadership in the county</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== STATS STRIPE ===== -->
+<div class="stripe">
+  <div class="wrap stats">
+    <div class="stat reveal"><div class="n">2014</div><p>Founded as a community-based organization</p></div>
+    <div class="stat reveal"><div class="n">3</div><p>Flagship programs across the county</p></div>
+    <div class="stat reveal"><div class="n">6+</div><p>Partner institutions & funders</p></div>
+    <div class="stat reveal"><div class="n">1000s</div><p>Young people reached & mobilized</p></div>
+  </div>
+</div>
+
+<!-- ===== PROGRAMS ===== -->
+<section class="pad" id="programs">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Our Programs</span>
+      <h2>Three ways we turn youth potential into power.</h2>
+      <p>Each program confronts a systemic barrier — and replaces it with skills, voice, and opportunity.</p>
+    </div>
+    <div class="prog-grid">
+      <article class="prog reveal">
+        <div class="prog-img"><span class="prog-num">01</span>
+          <img src="https://makueniyouth.org/wp-content/uploads/2025/06/Advocacy.png" alt="Advocacy" loading="lazy"></div>
+        <div class="prog-body">
+          <h3>Advocacy & Civic Engagement</h3>
+          <p>We equip young people with civic knowledge and confidence to shape county planning, budgets and policy — and to hold leaders accountable.</p>
+          <a href="#" class="prog-link">Explore program <span>→</span></a>
+        </div>
+      </article>
+      <article class="prog reveal">
+        <div class="prog-img"><span class="prog-num">02</span>
+          <img src="https://makueniyouth.org/wp-content/uploads/2025/05/talent.jpg" alt="Leadership & talent" loading="lazy"></div>
+        <div class="prog-body">
+          <h3>Leadership & Talent Development</h3>
+          <p>Structured training and mentorship that nurtures confident, values-driven leaders ready to take up roles in their communities.</p>
+          <a href="#" class="prog-link">Explore program <span>→</span></a>
+        </div>
+      </article>
+      <article class="prog reveal">
+        <div class="prog-img"><span class="prog-num">03</span>
+          <img src="https://makueniyouth.org/wp-content/uploads/2025/05/Educational.jpg" alt="Education & capacity" loading="lazy"></div>
+        <div class="prog-body">
+          <h3>Education & Capacity Enhancement</h3>
+          <p>We assess learning outcomes and gender gaps, then turn evidence into action — lobbying duty bearers for responsive policy and budgets.</p>
+          <a href="#" class="prog-link">Explore program <span>→</span></a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ABOUT ===== -->
+<section class="pad about" id="about">
+  <div class="wrap about-grid">
+    <div class="about-visual reveal">
+      <div class="frame">
+        <img src="https://makueniyouth.org/wp-content/uploads/2025/05/Makueni-Youths.png" alt="Makueni Youth Network members" loading="lazy">
+      </div>
+      <div class="est"><b>10+</b><small>Years strong</small></div>
+    </div>
+    <div class="about-text reveal">
+      <span class="eyebrow">Who We Are</span>
+      <h2>A youth-led movement confronting systemic barriers.</h2>
+      <p>Makueni Youth Network CBO was founded in 2014 to build a movement of young people committed to driving positive change across social, educational, political and economic spaces.</p>
+      <p>We believe young people are transformative leaders. Our mission is to mobilize, collaborate, empower and transform youth to actively engage in decision-making — increasing representation and grassroots civic action.</p>
+      <div class="vm-grid">
+        <div class="vm">
+          <div class="ic">🌅</div>
+          <h4>Our Vision</h4>
+          <p>A just community where young people enjoy dignified lives.</p>
+        </div>
+        <div class="vm">
+          <div class="ic">🎯</div>
+          <h4>Our Mission</h4>
+          <p>To enhance the purpose, rights and talents of young people as active citizens and agents of change.</p>
+        </div>
+      </div>
+      <div class="values">
+        <span>Collaborate</span><span>Empower</span><span>Transform</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== NEWS ===== -->
+<section class="pad" id="news">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Our Impact</span>
+      <h2>News, stories & the change we are making.</h2>
+    </div>
+    <div class="news-grid">
+      <article class="news feature reveal">
+        <div class="news-img">
+          <span class="news-date"><b>28</b><small>May</small></span>
+          <img src="https://makueniyouth.org/wp-content/uploads/2026/05/Youth-Gov-300x224.webp" alt="Youth governance" loading="lazy">
+        </div>
+        <div class="news-body">
+          <span class="news-cat">Governance</span>
+          <h3>Bridging the Gap: Youth Leading Change in Governance & Accountability</h3>
+          <p>How the Makueni Youth initiative is driving inclusive governance by bringing marginalized voices into county decision-making spaces.</p>
+          <a href="#" class="news-more">Read story →</a>
+        </div>
+      </article>
+      <article class="news reveal">
+        <div class="news-img">
+          <span class="news-date"><b>28</b><small>May</small></span>
+          <img src="https://makueniyouth.org/wp-content/uploads/2026/05/Makueni4-300x200.jpg" alt="Empowering youth" loading="lazy">
+        </div>
+        <div class="news-body">
+          <span class="news-cat">Advocacy</span>
+          <h3>Empowering Youth: Advocating for Rights & Sustainable Futures</h3>
+          <a href="#" class="news-more">Read story →</a>
+        </div>
+      </article>
+      <article class="news reveal">
+        <div class="news-img">
+          <span class="news-date"><b>28</b><small>May</small></span>
+          <img src="https://makueniyouth.org/wp-content/uploads/2026/05/MAkueni-Y-300x200.jpg" alt="Education and research" loading="lazy">
+        </div>
+        <div class="news-body">
+          <span class="news-cat">Education</span>
+          <h3>Bridging Gaps Through Education, Knowledge & Research</h3>
+          <a href="#" class="news-more">Read story →</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PARTNERS ===== -->
+<section class="pad partners">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Trusted Partners</span>
+      <h2>We don't do this alone.</h2>
+    </div>
+    <div class="logos">
+      <div class="logo-chip reveal">KCDF</div>
+      <div class="logo-chip reveal">Usawa Agenda</div>
+      <div class="logo-chip reveal">Zizi Afrique</div>
+      <div class="logo-chip reveal">Africa Voices</div>
+      <div class="logo-chip reveal">Poverty Eradication Network</div>
+      <div class="logo-chip reveal">EYC</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA BAND ===== -->
+<section class="pad" id="get-involved">
+  <div class="wrap">
+    <div class="cta reveal" id="cta">
+      <div>
+        <span class="eyebrow" style="color:var(--cream)">Get Involved</span>
+        <h2>Your support keeps youth at the decision table.</h2>
+        <p>Donate, volunteer your time, or partner with us. Every contribution funds civic training, mentorship and advocacy across Makueni County.</p>
+      </div>
+      <div class="cta-actions">
+        <a href="#" class="btn btn-light">Donate now</a>
+        <a href="#" class="btn btn-amber">Volunteer with us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer id="footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="brand"><span class="mark">M</span><span>Makueni Youth Network</span></div>
+        <p class="foot-about">A youth-led organization empowering young people in Makueni County to lead change in social, economic, education and political life.</p>
+        <div class="socials">
+          <a href="#" aria-label="Facebook">f</a>
+          <a href="#" aria-label="X">X</a>
+          <a href="#" aria-label="LinkedIn">in</a>
+        </div>
+      </div>
+      <div>
+        <h4>Programs</h4>
+        <ul>
+          <li><a href="#">Advocacy & Civic Engagement</a></li>
+          <li><a href="#">Leadership & Talent</a></li>
+          <li><a href="#">Education & Capacity</a></li>
+          <li><a href="#">Youth Mentorship</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#about">Who We Are</a></li>
+          <li><a href="#news">Our Impact</a></li>
+          <li><a href="#">Events</a></li>
+          <li><a href="#">Donate</a></li>
+        </ul>
+      </div>
+      <div class="foot-contact">
+        <h4>Visit Us</h4>
+        <p>Famo House, 2nd Flr, Rm 14<br>Behind Equity Bank, Wote Town</p>
+        <p>P.O Box 405 – 90300, Wote, Makueni</p>
+        <p>+254 710 580 604</p>
+        <p><a href="#" style="color:var(--amber)">info@makueniyouth.org</a></p>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Makueni Youth Network. All rights reserved.</span>
+      <span>Built on a custom PHP CMS</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// scroll reveal
+const io=new IntersectionObserver((es)=>{
+  es.forEach((e,i)=>{if(e.isIntersecting){
+    setTimeout(()=>e.target.classList.add('in'),(i%4)*90);
+    io.unobserve(e.target);}});
+},{threshold:.14});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

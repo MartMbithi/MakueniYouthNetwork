@@ -1,0 +1,12 @@
+/vendor/
+/.env
+/storage/logs/*
+!/storage/logs/.gitkeep
+/public/uploads/*
+!/public/uploads/.gitkeep
+composer.phar
+composer-setup.php
+.DS_Store
+.idea/
+.vscode/
+*.log

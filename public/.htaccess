@@ -1,0 +1,13 @@
+RewriteEngine On
+
+# Pass Authorization header to PHP (some CGI setups strip it)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Send everything that is NOT an existing file or directory to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# Block direct access to dotfiles
+RewriteRule (^|/)\. - [F]
