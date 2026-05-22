@@ -5,7 +5,7 @@
 {% block subtitle %}<div class="subtitle">Total completed in this range: <strong>{{ total|number_format(2) }} KES</strong></div>{% endblock %}
 
 {% block content %}
-<form method="get" action="/admin/donations" class="panel" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:16px;align-items:end;margin-bottom:16px">
+<form method="get" action="/admin/donations" class="panel admin-filter-bar">
   <div class="field"><label for="status">Status</label>
     <select id="status" name="status">
       <option value="">All</option>

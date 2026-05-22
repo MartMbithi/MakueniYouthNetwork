@@ -18,7 +18,7 @@
     {% if upcoming|length == 0 %}
       <p style="color:var(--muted)">No upcoming events scheduled. Check back soon, or <a href="/volunteer" style="color:var(--green-2);font-weight:600">volunteer with us</a>.</p>
     {% else %}
-      <div class="news-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="news-grid-equal">
         {% for e in upcoming %}
           <article class="news reveal">
             <div class="news-img">

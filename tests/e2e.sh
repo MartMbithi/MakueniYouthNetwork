@@ -85,7 +85,7 @@ section "VISITOR — public site walkthrough"
 for route in '/' '/programs' '/programs/advocacy-civic-engagement' \
              '/programs/leadership-talent-development' '/programs/youth-mentorship' \
              '/impact' '/impact?page=1' \
-             '/impact/bridging-the-gap-youth-leading-change-in-governance' \
+             '/impact/bridging-the-gap-how-makueni-youth-initiative-is-driving-inclusive-governance' \
              '/events' '/donate' '/volunteer' '/contact' \
              '/sitemap.xml' '/about'; do
   check "GET $route" "200" "$(status "$HOST$route")"
@@ -112,7 +112,7 @@ check_match "homepage shows email"         'info@makueniyouth.org' "$HOME"
 
 # SEO meta tags
 check_match "homepage <title>" "<title>Makueni Youth Network" "$HOME"
-POST_HTML=$(curl -s "$HOST/impact/bridging-the-gap-youth-leading-change-in-governance")
+POST_HTML=$(curl -s "$HOST/impact/bridging-the-gap-how-makueni-youth-initiative-is-driving-inclusive-governance")
 echo "$POST_HTML" | grep -qE 'og:title"[[:space:]]*content="Bridging the Gap'        && APTITLE="yes" || APTITLE="no"
 echo "$POST_HTML" | grep -qE 'og:image"[[:space:]]*content="https://makueniyouth\.org' && APIMG="yes"    || APIMG="no"
 check "post detail per-page og:title" "yes" "$APTITLE"
@@ -212,7 +212,7 @@ check_match "homepage canonical link"   '<link rel="canonical"' "$HOME_HTML"
 check_match "homepage Organization JSON-LD" '"@type": "NGO"' "$HOME_HTML"
 check_match "twitter:card meta"         'twitter:card' "$HOME_HTML"
 check_match "og:site_name meta"         'og:site_name' "$HOME_HTML"
-POST_HTML2=$(curl -s "$HOST/impact/bridging-the-gap-youth-leading-change-in-governance")
+POST_HTML2=$(curl -s "$HOST/impact/bridging-the-gap-how-makueni-youth-initiative-is-driving-inclusive-governance")
 check_match "post page Article JSON-LD" '"@type": "Article"' "$POST_HTML2"
 echo "$POST_HTML2" | grep -qE 'og:type"[[:space:]]*content="article"' && AT="yes" || AT="no"
 check "post page og:type=article" "yes" "$AT"

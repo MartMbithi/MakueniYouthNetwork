@@ -134,6 +134,19 @@ body.admin-login { background: linear-gradient(135deg, #173d2e 0%, #1f5340 100%)
 .login-brand { text-align: center; margin-bottom: 22px }
 .login-brand img { max-width: 220px; height: auto; display: inline-block }
 
+/* Reusable responsive grids inside admin pages */
+.admin-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:24px }
+.admin-grid-2 .admin-grid-full { grid-column: 1 / -1 }
+.admin-filter-bar { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:16px; align-items:end; margin-bottom:16px }
+@media (max-width: 900px) {
+  .admin-grid-2 { grid-template-columns: 1fr }
+  .admin-filter-bar { grid-template-columns: 1fr 1fr }
+  .admin-filter-bar > button { grid-column: 1 / -1 }
+}
+@media (max-width: 520px) {
+  .admin-filter-bar { grid-template-columns: 1fr }
+}
+
 /* Mobile sidebar toggle (only rendered on mobile) */
 .admin-mobile-bar {
   display: none;

@@ -13,7 +13,7 @@
 </section>
 
 <section class="pad">
-  <div class="wrap" style="display:grid;grid-template-columns:1.1fr .9fr;gap:60px">
+  <div class="wrap split-2">
     <form class="form" method="post" action="/volunteer" novalidate>
       {{ csrf_field()|raw }}
       {{ spam_fields()|raw }}

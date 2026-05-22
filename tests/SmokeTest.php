@@ -197,7 +197,7 @@ final class SmokeTest extends TestCase
     public function testProgramUnknown404(): void               { $this->expectStatus('/programs/no-such-program', 404); }
     public function testImpactListOk(): void                    { $this->expectStatus('/impact', 200); }
     public function testImpactPaginationOk(): void              { $this->expectStatus('/impact?page=1', 200); }
-    public function testPostDetailOk(): void                    { $this->expectStatus('/impact/bridging-the-gap-youth-leading-change-in-governance', 200); }
+    public function testPostDetailOk(): void                    { $this->expectStatus('/impact/bridging-the-gap-how-makueni-youth-initiative-is-driving-inclusive-governance', 200); }
     public function testPostUnknown404(): void                  { $this->expectStatus('/impact/no-such-post', 404); }
     public function testEventsOk(): void                        { $this->expectStatus('/events', 200); }
     public function testEventUnknown404(): void                 { $this->expectStatus('/events/no-such-event', 404); }

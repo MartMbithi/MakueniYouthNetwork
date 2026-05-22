@@ -17,7 +17,7 @@
     {% if posts|length == 0 %}
       <p style="text-align:center;color:var(--muted)">No stories yet — check back soon.</p>
     {% else %}
-      <div class="news-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="news-grid-equal">
         {% for post in posts %}
           <article class="news reveal">
             <div class="news-img">
