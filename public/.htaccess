@@ -32,18 +32,24 @@ ServerSignature Off
     Header set Cross-Origin-Opener-Policy "same-origin"
     Header set Cross-Origin-Resource-Policy "same-site"
 
-    # Content-Security-Policy: tight default. The only external origins we
-    # touch are Google Fonts (CSS + woff2) and Paystack (checkout iframe +
-    # API). Everything else — every image, every script — must be 'self'.
+    # Content-Security-Policy: tight default. External origins:
+    #   - Google Fonts (Hanken Grotesk + Fraunces, CSS + woff2)
+    #   - Paystack (checkout iframe + API)
+    #   - jsDelivr CDN (admin back-office only: Bootstrap 5, Remix Icon,
+    #     SweetAlert2, TinyMCE 6 — see templates/layouts/admin.twig)
+    #   - Google Analytics (gtag.js, public side only; injected by base.twig
+    #     when site.google_analytics_id is set in /admin/settings)
     # makueniyouth.org is intentionally NOT in the allow-list: the legacy WP
     # site is being decommissioned and all content has been rehosted locally.
     Header set Content-Security-Policy "default-src 'self'; \
-        script-src 'self' 'unsafe-inline' https://js.paystack.co; \
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
-        font-src 'self' https://fonts.gstatic.com data:; \
-        img-src 'self' data: https://*.paystack.co; \
-        connect-src 'self' https://api.paystack.co; \
-        frame-src https://checkout.paystack.com; \
+        script-src 'self' 'unsafe-inline' https://js.paystack.co https://cdn.jsdelivr.net https://www.googletagmanager.com; \
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; \
+        font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; \
+        img-src 'self' data: blob: https://*.paystack.co https://*.google-analytics.com https://*.googletagmanager.com; \
+        connect-src 'self' https://api.paystack.co https://cdn.jsdelivr.net https://*.google-analytics.com https://*.googletagmanager.com; \
+        frame-src 'self' https://checkout.paystack.com; \
+        worker-src 'self' blob:; \
+        child-src 'self' blob:; \
         form-action 'self' https://checkout.paystack.com; \
         frame-ancestors 'self'; \
         base-uri 'self'; \
@@ -58,6 +64,22 @@ ServerSignature Off
 
 # Disable directory listing
 Options -Indexes -MultiViews
+
+# -------------------------------------------------------------------------
+# MIME types Apache may not know about by default.
+# ImageProcessor stores uploads as .webp (preferred) and falls back to .jpg
+# when libwebp isn't compiled into GD. Some cPanel hosts ship an Apache
+# build without webp / avif in mime.types, which then sends the files as
+# application/octet-stream and the browser refuses to render them because
+# X-Content-Type-Options: nosniff is set above.
+# -------------------------------------------------------------------------
+<IfModule mod_mime.c>
+    AddType image/webp  .webp
+    AddType image/avif  .avif
+    AddType image/svg+xml .svg .svgz
+    AddType font/woff2  .woff2
+    AddType font/woff   .woff
+</IfModule>
 
 # -------------------------------------------------------------------------
 # Gzip (M7.3)
