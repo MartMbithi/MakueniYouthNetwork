@@ -155,7 +155,14 @@ ini_set('error_log', $rootDir . '/storage/logs/app.log');
 
 Database::configure($config['db']);
 View::configure($rootDir . '/templates', $isLocal);
-ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
+
+// Upload directory must live INSIDE the Apache DocumentRoot so the public
+// /uploads/* URLs actually resolve. We anchor it to __DIR__ (the directory
+// holding this front controller) rather than $rootDir so it works for both
+// deployment topologies:
+//   - Local dev / single-dir host: __DIR__ = .../public, files go to public/uploads
+//   - cPanel Layout A:             __DIR__ = ~/<docroot>, files go to <docroot>/uploads
+ImageProcessor::configure(__DIR__ . '/uploads', '/uploads/');
 
 // SMTP + Paystack settings live in the database, not .env, so admins can
 // rotate them through the back office without redeploying. We read them

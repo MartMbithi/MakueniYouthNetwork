@@ -165,6 +165,19 @@ final class ImageProcessor
             try {
                 return self::store($upload);
             } catch (\Throwable $e) {
+                // Log AND flash. The toast disappears in 4 seconds, the log
+                // stays. Includes upload metadata so we can tell whether the
+                // file even made it through PHP's upload handling.
+                error_log(sprintf(
+                    '[ImageProcessor] resolve(%s) failed: %s — name=%s, size=%s, tmp=%s, error=%s, target_dir=%s',
+                    $name,
+                    $e->getMessage(),
+                    (string) ($upload['name'] ?? ''),
+                    (string) ($upload['size'] ?? '?'),
+                    (string) ($upload['tmp_name'] ?? ''),
+                    (string) ($upload['error'] ?? '?'),
+                    self::$uploadDir
+                ));
                 View::flash(ucfirst(str_replace('_', ' ', $name)) . ' upload failed: ' . $e->getMessage(), 'error');
                 return $existing;
             }
@@ -209,7 +222,16 @@ final class ImageProcessor
         self::$uploadDir = rtrim($uploadDir, '/') . '/';
         self::$publicPrefix = '/' . trim($publicPrefix, '/') . '/';
         if (!is_dir(self::$uploadDir)) {
-            @mkdir(self::$uploadDir, 0775, true);
+            if (!@mkdir(self::$uploadDir, 0775, true) && !is_dir(self::$uploadDir)) {
+                error_log('[ImageProcessor] could not create upload dir: ' . self::$uploadDir
+                    . ' — parent perms: ' . (is_dir(dirname(self::$uploadDir)) ? substr(sprintf('%o', fileperms(dirname(self::$uploadDir))), -4) : 'missing'));
+            }
+        }
+        if (is_dir(self::$uploadDir) && !is_writable(self::$uploadDir)) {
+            error_log('[ImageProcessor] upload dir not writable: ' . self::$uploadDir
+                . ' — perms: ' . substr(sprintf('%o', fileperms(self::$uploadDir)), -4)
+                . ', owner uid: ' . (fileowner(self::$uploadDir) ?: '?')
+                . ', process uid: ' . (function_exists('posix_geteuid') ? posix_geteuid() : '?'));
         }
     }
 
@@ -246,8 +268,7 @@ final class ImageProcessor
             throw new RuntimeException('File type not allowed.');
         }
 
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($tmp) ?: '';
+        $mime = self::detectMime($tmp);
         if (!in_array($mime, self::ALLOWED_MIME, true)) {
             throw new RuntimeException('File MIME did not match an allowed type.');
         }
@@ -298,13 +319,80 @@ final class ImageProcessor
         if (!$ok) {
             throw new RuntimeException('Could not write image file.');
         }
-        imagedestroy($img);
+        // GdImage is garbage-collected in PHP 8+; no explicit destroy needed.
 
         // Cleanup the original temp upload (move_uploaded_file would have
         // done so; we wrote a converted file instead).
         @unlink($tmp);
 
         return self::$publicPrefix . $newName;
+    }
+
+    /**
+     * Detect a file's MIME type. Prefers ext/fileinfo (finfo class). Falls
+     * back to ext/mime_magic (mime_content_type()), then to a tiny magic-byte
+     * sniff for the formats we accept — so an upload still works on shared
+     * hosts that ship without fileinfo enabled in PHP.
+     */
+    private static function detectMime(string $path): string
+    {
+        if (class_exists('\finfo')) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($path);
+            if (is_string($mime) && $mime !== '') {
+                return $mime;
+            }
+        }
+
+        if (function_exists('mime_content_type')) {
+            $mime = mime_content_type($path);
+            if (is_string($mime) && $mime !== '') {
+                return $mime;
+            }
+        }
+
+        // Last-resort magic-byte sniff. Covers the formats in ALLOWED_MIME.
+        $fh = fopen($path, 'rb');
+        if ($fh === false) {
+            return '';
+        }
+        $head = (string) fread($fh, 16);
+        fclose($fh);
+
+        // JPEG
+        if (str_starts_with($head, "\xFF\xD8\xFF")) {
+            return 'image/jpeg';
+        }
+        // PNG
+        if (str_starts_with($head, "\x89PNG\r\n\x1A\n")) {
+            return 'image/png';
+        }
+        // GIF
+        if (str_starts_with($head, 'GIF87a') || str_starts_with($head, 'GIF89a')) {
+            return 'image/gif';
+        }
+        // WebP: 'RIFF' .... 'WEBP'
+        if (strlen($head) >= 12 && str_starts_with($head, 'RIFF') && substr($head, 8, 4) === 'WEBP') {
+            return 'image/webp';
+        }
+        // AVIF / HEIF family: bytes 4-11 are 'ftypavif' or 'ftypheic'
+        if (strlen($head) >= 12 && substr($head, 4, 4) === 'ftyp') {
+            $brand = substr($head, 8, 4);
+            if ($brand === 'avif' || $brand === 'avis') {
+                return 'image/avif';
+            }
+        }
+        // PDF
+        if (str_starts_with($head, '%PDF-')) {
+            return 'application/pdf';
+        }
+        // SVG (text-based — sniff the start of the file as XML/SVG)
+        $headLow = ltrim(strtolower($head));
+        if (str_starts_with($headLow, '<?xml') || str_starts_with($headLow, '<svg')) {
+            return 'image/svg+xml';
+        }
+
+        return '';
     }
 
     private static function loadImage(string $path, string $mime): \GdImage
@@ -332,7 +420,7 @@ final class ImageProcessor
         $newH = (int) round($h * ($maxWidth / $w));
         $dst = imagecreatetruecolor($newW, $newH);
         imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $w, $h);
-        imagedestroy($src);
+        // GdImage is garbage-collected in PHP 8+; $src is unused after this.
         return $dst;
     }
 
