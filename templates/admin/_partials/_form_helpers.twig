@@ -1,24 +1,314 @@
+{#
+  Admin form & UI macros — Bootstrap 5.
+
+  Every admin CRUD form is built from these macros so layout/spacing/error
+  treatment stays uniform across the back office.
+#}
+
+{# ─────────────────────────  Errors summary  ───────────────────────── #}
+
 {% macro errors(errors) %}
   {% if errors is defined and errors|length > 0 %}
-    <div class="errors">
-      <strong>Please fix:</strong>
-      <ul>
-        {% for field, msgs in errors %}
-          {% for m in msgs %}<li>{{ m }}</li>{% endfor %}
-        {% endfor %}
-      </ul>
+    <div class="alert alert-danger d-flex align-items-start gap-2 admin-errors" role="alert">
+      <i class="ri ri-error-warning-fill fs-5 flex-shrink-0"></i>
+      <div>
+        <strong class="d-block mb-1">Please fix the following:</strong>
+        <ul class="mb-0 ps-3">
+          {% for field, msgs in errors %}
+            {% for m in msgs %}<li>{{ m }}</li>{% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   {% endif %}
 {% endmacro %}
 
-{% macro delete_button(action) %}
-  <form method="post" action="{{ action }}" style="display:inline" onsubmit="return confirm('Delete? This cannot be undone.')">
+{# ────────────────────────────  Breadcrumbs  ──────────────────────────── #}
+
+{% macro breadcrumbs(items) %}
+  <nav aria-label="breadcrumb" class="admin-breadcrumb">
+    <ol class="breadcrumb mb-0">
+      {% for item in items %}
+        {% if loop.last or item.href is not defined or item.href is null %}
+          <li class="breadcrumb-item active" aria-current="page">{{ item.label }}</li>
+        {% else %}
+          <li class="breadcrumb-item"><a href="{{ item.href }}">{{ item.label }}</a></li>
+        {% endif %}
+      {% endfor %}
+    </ol>
+  </nav>
+{% endmacro %}
+
+{# ─────────────────────────────  Text input  ───────────────────────────── #}
+
+{% macro text(name, label, value = '', opts = {}) %}
+  {% set type        = opts.type|default('text') %}
+  {% set required    = opts.required|default(false) %}
+  {% set placeholder = opts.placeholder|default('') %}
+  {% set help        = opts.help|default(null) %}
+  {% set autofocus   = opts.autofocus|default(false) %}
+  {% set autocomplete= opts.autocomplete|default(null) %}
+  {% set errors      = opts.errors|default([]) %}
+  {% set has_error   = errors[name] is defined %}
+  <div class="mb-3">
+    <label for="{{ opts.id|default(name) }}" class="form-label">{{ label }}{% if required %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+    <input
+      type="{{ type }}"
+      class="form-control{% if has_error %} is-invalid{% endif %}"
+      id="{{ opts.id|default(name) }}"
+      name="{{ name }}"
+      value="{{ value }}"
+      {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+      {% if required %}required{% endif %}
+      {% if autofocus %}autofocus{% endif %}
+      {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+      {% if opts.min is defined %}min="{{ opts.min }}"{% endif %}
+      {% if opts.max is defined %}max="{{ opts.max }}"{% endif %}
+      {% if opts.step is defined %}step="{{ opts.step }}"{% endif %}
+    >
+    {% if has_error %}
+      {% for m in errors[name] %}<div class="invalid-feedback d-block">{{ m }}</div>{% endfor %}
+    {% endif %}
+    {% if help %}<div class="form-text">{{ help|raw }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{# ───────────────────────────  Textarea  ─────────────────────────── #}
+
+{% macro textarea(name, label, value = '', opts = {}) %}
+  {% set rows     = opts.rows|default(4) %}
+  {% set required = opts.required|default(false) %}
+  {% set help     = opts.help|default(null) %}
+  {% set errors   = opts.errors|default([]) %}
+  {% set has_error= errors[name] is defined %}
+  <div class="mb-3">
+    <label for="{{ opts.id|default(name) }}" class="form-label">{{ label }}{% if required %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+    <textarea
+      class="form-control{% if has_error %} is-invalid{% endif %}"
+      id="{{ opts.id|default(name) }}"
+      name="{{ name }}"
+      rows="{{ rows }}"
+      {% if required %}required{% endif %}
+    >{{ value }}</textarea>
+    {% if has_error %}
+      {% for m in errors[name] %}<div class="invalid-feedback d-block">{{ m }}</div>{% endfor %}
+    {% endif %}
+    {% if help %}<div class="form-text">{{ help|raw }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{# ─────────────────────────  Rich text (TinyMCE)  ─────────────────────────── #}
+{# The data-richtext attribute is the hook admin.js uses to mount TinyMCE.    #}
+
+{% macro richtext(name, label, value = '', opts = {}) %}
+  {% set rows     = opts.rows|default(14) %}
+  {% set required = opts.required|default(false) %}
+  {% set help     = opts.help|default(null) %}
+  {% set errors   = opts.errors|default([]) %}
+  {% set has_error= errors[name] is defined %}
+  <div class="mb-3">
+    <label for="{{ opts.id|default(name) }}" class="form-label">{{ label }}{% if required %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+    <textarea
+      class="form-control admin-richtext{% if has_error %} is-invalid{% endif %}"
+      id="{{ opts.id|default(name) }}"
+      name="{{ name }}"
+      rows="{{ rows }}"
+      data-richtext="1"
+      {% if required %}required{% endif %}
+    >{{ value }}</textarea>
+    {% if has_error %}
+      {% for m in errors[name] %}<div class="invalid-feedback d-block">{{ m }}</div>{% endfor %}
+    {% endif %}
+    {% if help %}<div class="form-text">{{ help|raw }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{# ───────────────────────────  Select  ─────────────────────────── #}
+
+{% macro select(name, label, options, selected = null, opts = {}) %}
+  {% set required = opts.required|default(false) %}
+  {% set help     = opts.help|default(null) %}
+  {% set blank    = opts.blank|default(null) %}
+  {% set errors   = opts.errors|default([]) %}
+  {% set has_error= errors[name] is defined %}
+  <div class="mb-3">
+    <label for="{{ opts.id|default(name) }}" class="form-label">{{ label }}{% if required %} <span class="text-danger" aria-hidden="true">*</span>{% endif %}</label>
+    <select
+      class="form-select{% if has_error %} is-invalid{% endif %}"
+      id="{{ opts.id|default(name) }}"
+      name="{{ name }}"
+      {% if required %}required{% endif %}
+    >
+      {% if blank is not null %}<option value="">{{ blank }}</option>{% endif %}
+      {% for opt in options %}
+        {% set value = opt.value is defined ? opt.value : opt[0] %}
+        {% set txt   = opt.label is defined ? opt.label : opt[1] %}
+        <option value="{{ value }}" {{ selected is not null and selected|trim('') == value|trim('') ? 'selected' : '' }}>{{ txt }}</option>
+      {% endfor %}
+    </select>
+    {% if has_error %}
+      {% for m in errors[name] %}<div class="invalid-feedback d-block">{{ m }}</div>{% endfor %}
+    {% endif %}
+    {% if help %}<div class="form-text">{{ help|raw }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{# ────────────────────────  Image upload widget  ──────────────────────── #}
+{#
+  Renders three fields under one logical name:
+    name                 (URL fallback)
+    name_file            (uploaded file)
+    remove_name          (1 = explicitly clear, 0 = leave as-is)
+
+  Controllers should resolve the final value with the three-state pattern:
+    explicit-remove > file upload > URL > existing.
+#}
+
+{% macro image_upload(name, label, current_value = null, opts = {}) %}
+  {% set accept = opts.accept|default('image/jpeg,image/png,image/webp,image/svg+xml') %}
+  {% set help   = opts.help|default(null) %}
+  {% set hint   = opts.hint|default('JPG, PNG, WebP or SVG up to 8 MB.') %}
+  {% set errors = opts.errors|default([]) %}
+  {% set has_error = errors[name] is defined %}
+  <div class="mb-3 image-upload{% if current_value %} has-image{% endif %}" data-name="{{ name }}">
+    <label class="form-label">{{ label }}</label>
+    <input type="hidden" name="remove_{{ name }}" value="0" class="image-upload-remove-flag">
+    <div class="image-upload-card">
+      <div class="image-upload-preview">
+        {% if current_value %}
+          <img src="{{ current_value }}" alt="" class="image-upload-thumb">
+        {% else %}
+          <div class="image-upload-empty"><i class="ri ri-image-line"></i></div>
+        {% endif %}
+      </div>
+      <div class="image-upload-body">
+        <div class="image-upload-filename">
+          {% if current_value %}{{ current_value|split('/')|last }}{% else %}<span class="text-muted">No image selected</span>{% endif %}
+        </div>
+        <div class="image-upload-actions">
+          <label class="btn btn-sm btn-outline-primary mb-0">
+            <i class="ri ri-upload-2-line"></i> {{ current_value ? 'Replace' : 'Choose file' }}
+            <input type="file" name="{{ name }}_file" accept="{{ accept }}" class="image-upload-input visually-hidden">
+          </label>
+          <button type="button" class="btn btn-sm btn-outline-danger image-upload-remove" {% if not current_value %}hidden{% endif %}>
+            <i class="ri ri-delete-bin-line"></i> Remove
+          </button>
+        </div>
+        <div class="image-upload-drop text-muted small mt-1">
+          <i class="ri ri-upload-cloud-2-line"></i> Drop a file here, or click Choose file. {{ hint }}
+        </div>
+      </div>
+    </div>
+    <div class="image-upload-url-toggle mt-2">
+      <a href="#" class="small text-decoration-none link-secondary"><i class="ri ri-link"></i> Use external URL instead</a>
+    </div>
+    <div class="image-upload-url-wrap mt-2" hidden>
+      <input type="url" name="{{ name }}" value="{{ current_value|default('') }}" class="form-control form-control-sm image-upload-url-input" placeholder="https://example.com/image.jpg">
+      <div class="form-text">Direct link to a hosted image. Leave blank to use only the uploaded file.</div>
+    </div>
+    {% if has_error %}
+      {% for m in errors[name] %}<div class="invalid-feedback d-block">{{ m }}</div>{% endfor %}
+    {% endif %}
+    {% if help %}<div class="form-text">{{ help|raw }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
+{# ────────────────────  Secret input (masked)  ──────────────────── #}
+{#
+  Renders a sensitive value (Paystack secret key, SMTP password, etc.) in
+  a way that NEVER exposes the raw value to the browser:
+
+    - When `is_set` is true, shows a disabled hint like '••••••••a3f7' so
+      the admin knows a value is stored and what its tail looks like.
+    - The actual editable input is always blank. Leaving it empty on save
+      means "keep the current value"; typing a new value overwrites.
+    - Pass only `tail` (the last 4 chars) — never the full value.
+#}
+
+{% macro secret_input(name, label, is_set = false, tail = '', opts = {}) %}
+  {% set placeholder = opts.placeholder|default('Type a new value to replace') %}
+  {% set help        = opts.help|default(null) %}
+  {% set autocomplete= opts.autocomplete|default('new-password') %}
+  {% set errors      = opts.errors|default([]) %}
+  {% set has_error   = errors[name] is defined %}
+  <div class="mb-3">
+    <label for="{{ opts.id|default(name) }}" class="form-label">{{ label }}</label>
+    {% if is_set %}
+      <div class="input-group input-group-sm mb-2">
+        <span class="input-group-text"><i class="ri ri-shield-check-line text-success"></i></span>
+        <input type="text" class="form-control bg-light" value="••••••••{{ tail }}" disabled readonly>
+        <span class="input-group-text small text-muted">Stored</span>
+      </div>
+    {% endif %}
+    <input
+      type="password"
+      class="form-control{% if has_error %} is-invalid{% endif %}"
+      id="{{ opts.id|default(name) }}"
+      name="{{ name }}"
+      value=""
+      placeholder="{{ placeholder }}"
+      autocomplete="{{ autocomplete }}"
+      spellcheck="false"
+    >
+    {% if has_error %}
+      {% for m in errors[name] %}<div class="invalid-feedback d-block">{{ m }}</div>{% endfor %}
+    {% endif %}
+    <div class="form-text">
+      {% if is_set %}Leave blank to keep the current value.{% else %}Not configured yet.{% endif %}
+      {% if help %} {{ help|raw }}{% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{# ───────────────────  Status pill (Bootstrap badge)  ─────────────────── #}
+
+{% macro status_pill(status) %}
+  {% set s = status|lower %}
+  {% set cls = 'bg-secondary' %}
+  {% if s in ['published', 'completed', 'paid', 'active'] %}{% set cls = 'bg-success-subtle text-success-emphasis border border-success-subtle' %}
+  {% elseif s in ['draft', 'pending'] %}{% set cls = 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' %}
+  {% elseif s in ['failed', 'abandoned', 'error'] %}{% set cls = 'bg-danger-subtle text-danger-emphasis border border-danger-subtle' %}
+  {% elseif s in ['admin'] %}{% set cls = 'bg-primary-subtle text-primary-emphasis border border-primary-subtle' %}
+  {% elseif s in ['editor'] %}{% set cls = 'bg-info-subtle text-info-emphasis border border-info-subtle' %}
+  {% endif %}
+  <span class="badge rounded-pill text-uppercase fw-semibold {{ cls }}">{{ status }}</span>
+{% endmacro %}
+
+{# ────────────────────  Delete button (SweetAlert2)  ──────────────────── #}
+
+{% macro delete_button(action, opts = {}) %}
+  {% set label = opts.label|default('Delete') %}
+  {% set title = opts.title|default('Delete this item?') %}
+  {% set text  = opts.text|default('This cannot be undone.') %}
+  {% set confirm_text = opts.confirm_text|default('Yes, delete it') %}
+  {% set size = opts.size|default('sm') %}
+  {% set icon_only = opts.icon_only|default(false) %}
+  <form method="post" action="{{ action }}" class="d-inline"
+        data-confirm="{{ text }}" data-confirm-title="{{ title }}"
+        data-confirm-button="{{ confirm_text }}" data-confirm-icon="warning">
     {{ csrf_field()|raw }}
     <input type="hidden" name="_method" value="DELETE">
-    <button type="submit" class="admin-btn small danger">Delete</button>
+    <button type="submit" class="btn btn-{{ size }} btn-outline-danger" title="{{ label }}">
+      <i class="ri ri-delete-bin-line"></i>{% if not icon_only %} {{ label }}{% endif %}
+    </button>
   </form>
 {% endmacro %}
 
-{% macro status_pill(status) %}
-  <span class="status-pill {{ status }}">{{ status }}</span>
+{# ────────────────────  Card / panel wrapper  ──────────────────── #}
+
+{% macro card_open(title = null, icon = null, extra_class = '') %}
+  <div class="card shadow-sm admin-card {{ extra_class }}">
+    {% if title %}
+      <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+        <h2 class="h6 mb-0 fw-semibold text-uppercase text-secondary">
+          {% if icon %}<i class="ri ri-{{ icon }} me-2"></i>{% endif %}{{ title }}
+        </h2>
+      </div>
+    {% endif %}
+    <div class="card-body">
+{% endmacro %}
+
+{% macro card_close() %}
+    </div>
+  </div>
 {% endmacro %}

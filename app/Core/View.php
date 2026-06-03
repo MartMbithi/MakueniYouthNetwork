@@ -217,6 +217,19 @@ final class View
         return self::$twig->render($template, $data + $base);
     }
 
+    /**
+     * Setting keys that must NEVER reach the template scope. They hold
+     * secrets (API keys, SMTP passwords) and live in the same `settings`
+     * table only for admin convenience; templates only ever see the
+     * non-sensitive site config below.
+     *
+     * @var list<string>
+     */
+    private const SITE_SECRETS = [
+        'paystack_secret_key',
+        'mail_pass',
+    ];
+
     /** @return array<string,string> */
     private static function loadSiteSettings(): array
     {
@@ -240,6 +253,10 @@ final class View
             $rows = $stmt->fetchAll() ?: [];
             $kv = [];
             foreach ($rows as $r) {
+                $key = (string) $r['setting_key'];
+                if (in_array($key, self::SITE_SECRETS, true)) {
+                    continue; // secrets never enter the template scope
+                }
                 $v = (string) ($r['setting_value'] ?? '');
                 // Treat empty stored values as "use the default" rather than
                 // overriding the default with an empty string. This lets an
@@ -247,7 +264,7 @@ final class View
                 if ($v === '') {
                     continue;
                 }
-                $kv[(string) $r['setting_key']] = $v;
+                $kv[$key] = $v;
             }
             return $kv + $defaults;
         } catch (PDOException | Throwable $e) {

@@ -202,9 +202,14 @@ final class DonationController
             'status'      => 'pending',
         ]);
 
-        $callback = ($_ENV['APP_URL'] ?? '') !== ''
-            ? rtrim($_ENV['APP_URL'], '/') . '/donate/callback'
-            : null;
+        // Prefer the admin-configured Paystack callback URL; otherwise fall
+        // back to the auto-built /donate/callback under APP_URL.
+        $configured = Paystack::callbackUrl();
+        $callback = $configured !== ''
+            ? $configured
+            : (($_ENV['APP_URL'] ?? '') !== ''
+                ? rtrim($_ENV['APP_URL'], '/') . '/donate/callback'
+                : null);
 
         try {
             $init = Paystack::initialize(

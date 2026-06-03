@@ -173,7 +173,7 @@ final class PostController
             return $this->renderForm($data, $errors, 'create', '/admin/posts');
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], null);
-        $cover = $this->maybeUploadCover($data['cover_image']);
+        $cover = ImageProcessor::resolve('cover_image', null);
 
         $id = Post::create([
             'slug'         => $slug,
@@ -223,7 +223,7 @@ final class PostController
             return $this->renderForm(array_merge($post, $data), $errors, 'edit', '/admin/posts/' . $id);
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], (int) $id);
-        $cover = $this->maybeUploadCover($data['cover_image']) ?? $post['cover_image'];
+        $cover = ImageProcessor::resolve('cover_image', $post['cover_image'] ?? null);
 
         Post::update((int) $id, [
             'slug'         => $slug,
@@ -292,21 +292,6 @@ final class PostController
             $row = $stmt->fetch();
             return $row !== false && (int) $row['id'] !== $id;
         });
-    }
-
-    /** @param array<string,mixed>|null $upload */
-    private function maybeUploadCover(?array $upload): ?string
-    {
-        if ($upload === null) {
-            $url = trim((string) Request::input('cover_image', ''));
-            return $url !== '' ? $url : null;
-        }
-        try {
-            return ImageProcessor::store($upload);
-        } catch (\Throwable $e) {
-            View::flash('Cover upload failed: ' . $e->getMessage(), 'error');
-            return null;
-        }
     }
 
     private function renderForm(array $post, array $errors, string $mode, string $action): string

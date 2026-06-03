@@ -137,31 +137,75 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
 use App\Models\Setting;
+use App\Services\ImageProcessor;
 
 final class SettingsController
 {
-    private const KEYS = [
+    /** Plain text settings rendered + saved verbatim. */
+    private const TEXT_KEYS = [
+        // Organisation
         'name', 'tagline', 'phone', 'email', 'address', 'po_box',
+        // Social
         'facebook', 'twitter', 'linkedin',
-        'logo', 'logo_square',
+        // Paystack (non-secret)
+        'paystack_env', 'paystack_public_key', 'paystack_callback_url', 'paystack_currency',
+        // SMTP (non-secret)
+        'mail_host', 'mail_port', 'mail_user', 'mail_from',
+        // Analytics
+        'google_analytics_id',
     ];
+
+    /** Image settings — three-state image control (file/URL/remove). */
+    private const IMAGE_KEYS = ['logo', 'logo_square'];
+
+    /** Secret settings — never echoed back to the browser; empty submission
+     *  means "keep the current value", a non-empty submission overwrites. */
+    private const SECRET_KEYS = ['paystack_secret_key', 'mail_pass'];
 
     public function edit(): string
     {
         $current = Setting::all();
+
+        // Strip secrets from the array the template can see at all, then
+        // attach per-secret "is set / tail" hints separately. The raw
+        // secret value never enters the template scope.
+        $secretsState = [];
+        foreach (self::SECRET_KEYS as $k) {
+            $val = (string) ($current[$k] ?? '');
+            $secretsState[$k] = [
+                'is_set' => $val !== '',
+                'tail'   => $val !== '' ? substr($val, -4) : '',
+            ];
+            unset($current[$k]);
+        }
+
         return View::render('admin/settings/index.twig', [
             'title'    => 'Settings',
             'settings' => $current,
+            'secrets'  => $secretsState,
         ]);
     }
 
     public function update(): string
     {
         Csrf::requireValid();
+        $existing = Setting::all();
+
         $pairs = [];
-        foreach (self::KEYS as $k) {
+        foreach (self::TEXT_KEYS as $k) {
             $pairs[$k] = trim((string) Request::input($k, ''));
         }
+        foreach (self::IMAGE_KEYS as $k) {
+            $pairs[$k] = (string) (ImageProcessor::resolve($k, $existing[$k] ?? null) ?? '');
+        }
+        foreach (self::SECRET_KEYS as $k) {
+            $submitted = trim((string) Request::input($k, ''));
+            if ($submitted !== '') {
+                $pairs[$k] = $submitted;
+            }
+            // else: omitted from $pairs entirely so setMany leaves the row alone
+        }
+
         Setting::setMany($pairs);
         View::flash('Settings saved.', 'success');
         Response::redirect('/admin/settings');

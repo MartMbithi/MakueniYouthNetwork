@@ -167,6 +167,7 @@ final class PartnerController
             View::flash('Partner name is required.', 'error');
             Response::redirect('/admin/partners/create');
         }
+        $data['logo'] = ImageProcessor::resolve('logo', null);
         Partner::create($data);
         View::flash('Partner created.', 'success');
         Response::redirect('/admin/partners');
@@ -191,10 +192,7 @@ final class PartnerController
         $partner = Partner::find((int) $id);
         if (!$partner) { Response::notFound(); return ''; }
         $data = $this->collect();
-        // Preserve existing logo if neither file nor URL provided
-        if ($data['logo'] === null) {
-            $data['logo'] = $partner['logo'];
-        }
+        $data['logo'] = ImageProcessor::resolve('logo', $partner['logo'] ?? null);
         Partner::update((int) $id, $data);
         View::flash('Partner saved.', 'success');
         Response::redirect('/admin/partners');
@@ -213,23 +211,11 @@ final class PartnerController
     /** @return array<string,mixed> */
     private function collect(): array
     {
-        $logo = null;
-        $upload = Request::file('logo_file');
-        if ($upload !== null) {
-            try {
-                $logo = ImageProcessor::store($upload);
-            } catch (\Throwable $e) {
-                View::flash('Logo upload failed: ' . $e->getMessage(), 'error');
-            }
-        }
-        if ($logo === null) {
-            $url = trim((string) Request::input('logo', ''));
-            $logo = $url !== '' ? $url : null;
-        }
+        $url = trim((string) Request::input('url', ''));
         return [
             'name'       => trim((string) Request::input('name', '')),
-            'logo'       => $logo,
-            'url'        => trim((string) Request::input('url', '')) !== '' ? trim((string) Request::input('url', '')) : null,
+            'logo'       => null, // overwritten by ImageProcessor::resolve() in store/update
+            'url'        => $url !== '' ? $url : null,
             'sort_order' => (int) Request::input('sort_order', 0),
         ];
     }

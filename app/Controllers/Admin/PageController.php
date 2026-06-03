@@ -170,7 +170,7 @@ final class PageController
             return $this->renderForm($data, $errors, 'create', '/admin/pages');
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], null);
-        $hero = $this->uploadOrUrl($data['hero_file']);
+        $hero = ImageProcessor::resolve('hero_image', null);
 
         $id = Page::create([
             'slug'       => $slug,
@@ -214,7 +214,7 @@ final class PageController
             return $this->renderForm(array_merge($page, $data), $errors, 'edit', '/admin/pages/' . $id);
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], (int) $id);
-        $hero = $this->uploadOrUrl($data['hero_file']) ?? $page['hero_image'];
+        $hero = ImageProcessor::resolve('hero_image', $page['hero_image'] ?? null);
 
         Page::update((int) $id, [
             'slug'       => $slug,
@@ -272,20 +272,6 @@ final class PageController
             $row = $stmt->fetch();
             return $row !== false && (int) $row['id'] !== $id;
         });
-    }
-
-    /** @param array<string,mixed>|null $upload */
-    private function uploadOrUrl(?array $upload): ?string
-    {
-        if ($upload !== null) {
-            try {
-                return ImageProcessor::store($upload);
-            } catch (\Throwable $e) {
-                View::flash('Hero upload failed: ' . $e->getMessage(), 'error');
-            }
-        }
-        $url = trim((string) Request::input('hero_image', ''));
-        return $url !== '' ? $url : null;
     }
 
     private function renderForm(array $page, array $errors, string $mode, string $action): string

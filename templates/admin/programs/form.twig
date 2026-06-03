@@ -3,76 +3,71 @@
 
 {% block title %}{{ mode == 'create' ? 'New program' : 'Edit program' }}{% endblock %}
 
+{% block breadcrumb %}
+  {{ h.breadcrumbs([
+    {label: 'Dashboard', href: '/admin'},
+    {label: 'Programs',  href: '/admin/programs'},
+    {label: mode == 'create' ? 'New' : (program.title|default('Edit'))}
+  ]) }}
+{% endblock %}
+
+{% block actions %}
+  {% if program.id %}
+    <a href="/programs/{{ program.slug }}" target="_blank" rel="noopener" class="btn btn-outline-secondary">
+      <i class="ri ri-eye-line"></i> View live
+    </a>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 {{ h.errors(errors|default([])) }}
 
-<form method="post" action="{{ action }}" enctype="multipart/form-data" class="admin-form">
+<form method="post" action="{{ action }}" enctype="multipart/form-data" novalidate>
   {{ csrf_field()|raw }}
-  <div class="panel">
-    <div class="field">
-      <label for="title">Title</label>
-      <input type="text" id="title" name="title" value="{{ program.title|default('') }}" required>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      {{ h.card_open('Program details', 'organization-chart') }}
+        {{ h.text('title', 'Title', program.title|default(''), {required: true, errors: errors|default([])}) }}
+        {{ h.text('slug',  'Slug',  program.slug|default(''),  {placeholder: 'auto from title', help: 'URL: <code>/programs/' ~ (program.slug|default('your-slug')) ~ '</code>', errors: errors|default([])}) }}
+        {{ h.textarea('summary', 'Summary', program.summary|default(''), {rows: 3, help: 'Shown on the homepage card and in lists.', errors: errors|default([])}) }}
+        {{ h.richtext('body', 'Body', program.body|default(''), {errors: errors|default([])}) }}
+      {{ h.card_close() }}
     </div>
 
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="slug">Slug</label>
-        <input type="text" id="slug" name="slug" value="{{ program.slug|default('') }}" placeholder="auto from title">
-      </div>
-      <div class="field">
-        <label for="parent_id">Parent program <span style="color:var(--admin-muted);font-weight:400">(makes this a sub-program)</span></label>
-        <select id="parent_id" name="parent_id">
-          <option value="">— top-level —</option>
-          {% for p in parents %}
-            <option value="{{ p.id }}" {{ program.parent_id == p.id ? 'selected' : '' }}>{{ p.title }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
+    <div class="col-lg-4">
+      {{ h.card_open('Publish', 'send-plane-line') }}
+        {% set status_options = [{value: 'published', label: 'Published'}, {value: 'draft', label: 'Draft'}] %}
+        {{ h.select('status', 'Status', status_options, program.status|default('published'), {errors: errors|default([])}) }}
+        <div class="d-grid">
+          <button type="submit" name="action" value="save" class="btn btn-primary">
+            <i class="ri ri-checkbox-circle-line"></i> {{ mode == 'create' ? 'Create program' : 'Save changes' }}
+          </button>
+        </div>
+      {{ h.card_close() }}
 
-    <div class="field" style="margin-top:16px">
-      <label for="summary">Summary <span style="color:var(--admin-muted);font-weight:400">(shown on the homepage card)</span></label>
-      <textarea id="summary" name="summary" style="min-height:80px">{{ program.summary|default('') }}</textarea>
-    </div>
+      {{ h.card_open('Hierarchy', 'node-tree') }}
+        {% set parent_options = [] %}
+        {% for p in parents %}{% set parent_options = parent_options|merge([{value: p.id, label: p.title}]) %}{% endfor %}
+        {{ h.select('parent_id', 'Parent program', parent_options, program.parent_id|default(null), {blank: '— top level —', help: 'Pick a parent to make this a sub-program.', errors: errors|default([])}) }}
+        {{ h.text('sort_order', 'Display order', program.sort_order|default(0), {type: 'number', help: 'Lower numbers appear first.', errors: errors|default([])}) }}
+      {{ h.card_close() }}
 
-    <div class="field" style="margin-top:16px">
-      <label for="body">Body (HTML)</label>
-      <textarea id="body" name="body">{{ program.body|default('') }}</textarea>
-    </div>
+      {{ h.card_open('Cover image', 'image-line') }}
+        {{ h.image_upload('cover_image', 'Featured image', program.cover_image|default(null), {help: 'Used on the program landing page and on the homepage card.', errors: errors|default([])}) }}
+      {{ h.card_close() }}
 
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="cover_image">Cover image URL</label>
-        <input type="url" id="cover_image" name="cover_image" value="{{ program.cover_image|default('') }}">
-      </div>
-      <div class="field">
-        <label for="cover_image_file">…or upload</label>
-        <input type="file" id="cover_image_file" name="cover_image_file" accept="image/jpeg,image/png,image/webp">
-      </div>
+      {% if program.id %}
+        {{ h.card_open('Danger zone', 'shield-cross-line', 'border border-danger-subtle') }}
+          <p class="text-muted small mb-3">Deleting a program removes it from all menus.</p>
+          {{ h.delete_button('/admin/programs/' ~ program.id ~ '/delete', {label: 'Delete program', title: 'Delete this program?', text: 'The program "' ~ program.title ~ '" will be permanently removed.'}) }}
+        {{ h.card_close() }}
+      {% endif %}
     </div>
-
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="sort_order">Display order</label>
-        <input type="number" id="sort_order" name="sort_order" value="{{ program.sort_order|default(0) }}">
-      </div>
-      <div class="field">
-        <label for="status">Status</label>
-        <select id="status" name="status">
-          <option value="published" {{ program.status == 'published' ? 'selected' : '' }}>Published</option>
-          <option value="draft"     {{ program.status == 'draft'     ? 'selected' : '' }}>Draft</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div class="actions">
-    <button type="submit" name="action" value="save" class="admin-btn primary">{{ mode == 'create' ? 'Create' : 'Save changes' }}</button>
-    {% if program.id %}
-      <a href="/programs/{{ program.slug }}" target="_blank" class="admin-btn amber">View live →</a>
-      <span style="flex:1"></span>
-      {{ h.delete_button('/admin/programs/' ~ program.id ~ '/delete') }}
-    {% endif %}
   </div>
 </form>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 {% endblock %}

@@ -3,64 +3,70 @@
 
 {% block title %}{{ mode == 'create' ? 'New event' : 'Edit event' }}{% endblock %}
 
+{% block breadcrumb %}
+  {{ h.breadcrumbs([
+    {label: 'Dashboard', href: '/admin'},
+    {label: 'Events',    href: '/admin/events'},
+    {label: mode == 'create' ? 'New' : (event.title|default('Edit'))}
+  ]) }}
+{% endblock %}
+
+{% block actions %}
+  {% if event.id %}
+    <a href="/events/{{ event.slug }}" target="_blank" rel="noopener" class="btn btn-outline-secondary">
+      <i class="ri ri-eye-line"></i> View live
+    </a>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 {{ h.errors(errors|default([])) }}
 
-<form method="post" action="{{ action }}" enctype="multipart/form-data" class="admin-form">
+<form method="post" action="{{ action }}" enctype="multipart/form-data" novalidate>
   {{ csrf_field()|raw }}
-  <div class="panel">
-    <div class="field">
-      <label for="title">Title</label>
-      <input type="text" id="title" name="title" value="{{ event.title|default('') }}" required>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      {{ h.card_open('Event details', 'calendar-event-line') }}
+        {{ h.text('title', 'Title', event.title|default(''), {required: true, errors: errors|default([])}) }}
+        <div class="row g-3">
+          <div class="col-md-6">{{ h.text('slug', 'Slug', event.slug|default(''), {placeholder: 'auto from title', errors: errors|default([])}) }}</div>
+          <div class="col-md-6">{{ h.text('venue', 'Venue', event.venue|default(''), {placeholder: 'e.g. Famo House Hall', errors: errors|default([])}) }}</div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">{{ h.text('starts_at', 'Starts at', event.starts_at ? event.starts_at|date('Y-m-d\\TH:i') : '', {type: 'datetime-local', required: true, errors: errors|default([])}) }}</div>
+          <div class="col-md-6">{{ h.text('ends_at', 'Ends at', event.ends_at ? event.ends_at|date('Y-m-d\\TH:i') : '', {type: 'datetime-local', help: 'Optional.', errors: errors|default([])}) }}</div>
+        </div>
+        {{ h.richtext('description', 'Description', event.description|default(''), {errors: errors|default([])}) }}
+      {{ h.card_close() }}
     </div>
 
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="slug">Slug</label>
-        <input type="text" id="slug" name="slug" value="{{ event.slug|default('') }}" placeholder="auto from title">
-      </div>
-      <div class="field">
-        <label for="venue">Venue</label>
-        <input type="text" id="venue" name="venue" value="{{ event.venue|default('') }}">
-      </div>
-    </div>
+    <div class="col-lg-4">
+      {{ h.card_open('Publish', 'send-plane-line') }}
+        <div class="d-grid gap-2">
+          <button type="submit" name="action" value="publish" class="btn btn-primary">
+            <i class="ri ri-global-line"></i> {{ event.status == 'published' ? 'Update event' : 'Publish' }}
+          </button>
+          <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
+            <i class="ri ri-draft-line"></i> Save as draft
+          </button>
+        </div>
+      {{ h.card_close() }}
 
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="starts_at">Starts at</label>
-        <input type="datetime-local" id="starts_at" name="starts_at" value="{{ event.starts_at ? event.starts_at|date('Y-m-d\\TH:i') : '' }}" required>
-      </div>
-      <div class="field">
-        <label for="ends_at">Ends at (optional)</label>
-        <input type="datetime-local" id="ends_at" name="ends_at" value="{{ event.ends_at ? event.ends_at|date('Y-m-d\\TH:i') : '' }}">
-      </div>
-    </div>
+      {{ h.card_open('Cover image', 'image-line') }}
+        {{ h.image_upload('cover_image', 'Featured image', event.cover_image|default(null), {help: 'Used at the top of the event page and on cards.', errors: errors|default([])}) }}
+      {{ h.card_close() }}
 
-    <div class="field" style="margin-top:16px">
-      <label for="description">Description (HTML)</label>
-      <textarea id="description" name="description">{{ event.description|default('') }}</textarea>
+      {% if event.id %}
+        {{ h.card_open('Danger zone', 'shield-cross-line', 'border border-danger-subtle') }}
+          {{ h.delete_button('/admin/events/' ~ event.id ~ '/delete', {label: 'Delete event', title: 'Delete this event?', text: 'The event "' ~ event.title ~ '" will be permanently removed.'}) }}
+        {{ h.card_close() }}
+      {% endif %}
     </div>
-
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="cover_image">Cover image URL</label>
-        <input type="url" id="cover_image" name="cover_image" value="{{ event.cover_image|default('') }}">
-      </div>
-      <div class="field">
-        <label for="cover_image_file">…or upload</label>
-        <input type="file" id="cover_image_file" name="cover_image_file" accept="image/jpeg,image/png,image/webp">
-      </div>
-    </div>
-  </div>
-
-  <div class="actions">
-    <button type="submit" name="action" value="draft"   class="admin-btn ghost">Save draft</button>
-    <button type="submit" name="action" value="publish" class="admin-btn primary">{{ event.status == 'published' ? 'Update' : 'Publish' }}</button>
-    {% if event.id %}
-      <a href="/events/{{ event.slug }}" target="_blank" class="admin-btn amber">View live →</a>
-      <span style="flex:1"></span>
-      {{ h.delete_button('/admin/events/' ~ event.id ~ '/delete') }}
-    {% endif %}
   </div>
 </form>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 {% endblock %}

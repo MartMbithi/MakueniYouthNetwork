@@ -171,7 +171,7 @@ final class ProgramController
             return $this->renderForm($data, $errors, 'create', '/admin/programs');
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], null);
-        $cover = $this->uploadOrUrl($data['cover_file']);
+        $cover = ImageProcessor::resolve('cover_image', null);
 
         $id = Program::create([
             'parent_id'   => $data['parent_id'],
@@ -218,7 +218,7 @@ final class ProgramController
             return $this->renderForm(array_merge($program, $data), $errors, 'edit', '/admin/programs/' . $id);
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], (int) $id);
-        $cover = $this->uploadOrUrl($data['cover_file']) ?? $program['cover_image'];
+        $cover = ImageProcessor::resolve('cover_image', $program['cover_image'] ?? null);
 
         Program::update((int) $id, [
             'parent_id'   => $data['parent_id'],
@@ -282,20 +282,6 @@ final class ProgramController
             $row = $stmt->fetch();
             return $row !== false && (int) $row['id'] !== $id;
         });
-    }
-
-    /** @param array<string,mixed>|null $upload */
-    private function uploadOrUrl(?array $upload): ?string
-    {
-        if ($upload !== null) {
-            try {
-                return ImageProcessor::store($upload);
-            } catch (\Throwable $e) {
-                View::flash('Cover upload failed: ' . $e->getMessage(), 'error');
-            }
-        }
-        $url = trim((string) Request::input('cover_image', ''));
-        return $url !== '' ? $url : null;
     }
 
     private function renderForm(array $program, array $errors, string $mode, string $action): string

@@ -2,38 +2,77 @@
 {% import 'admin/_partials/_form_helpers.twig' as h %}
 
 {% block title %}Donations{% endblock %}
-{% block subtitle %}<div class="subtitle">Total completed in this range: <strong>{{ total|number_format(2) }} KES</strong></div>{% endblock %}
+
+{% block breadcrumb %}
+  {{ h.breadcrumbs([{label: 'Dashboard', href: '/admin'}, {label: 'Donations'}]) }}
+{% endblock %}
+
+{% block subtitle %}
+  <p class="text-muted mb-0 small mt-1">Total completed in this range: <strong class="text-success">{{ total|number_format(2) }} KES</strong></p>
+{% endblock %}
 
 {% block content %}
-<form method="get" action="/admin/donations" class="panel admin-filter-bar">
-  <div class="field"><label for="status">Status</label>
-    <select id="status" name="status">
-      <option value="">All</option>
-      {% for s in ['pending','completed','failed','abandoned'] %}
-        <option value="{{ s }}" {{ filters.status == s ? 'selected' : '' }}>{{ s }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="field"><label for="from">From</label><input type="date" id="from" name="from" value="{{ filters.from }}"></div>
-  <div class="field"><label for="to">To</label><input type="date" id="to" name="to" value="{{ filters.to }}"></div>
-  <button type="submit" class="admin-btn primary">Filter</button>
-</form>
 
-<table class="admin-table">
-  <thead><tr><th>Reference</th><th>Donor</th><th>Amount</th><th>Channel</th><th>Status</th><th>When</th></tr></thead>
-  <tbody>
-  {% for d in donations %}
-    <tr>
-      <td><code style="font-size:.82rem">{{ d.reference }}</code></td>
-      <td>{{ d.donor_name|default('—') }}<br><a href="mailto:{{ d.donor_email }}" style="color:var(--admin-muted);font-size:.82rem">{{ d.donor_email }}</a></td>
-      <td><strong>{{ d.amount|number_format(2) }} {{ d.currency }}</strong></td>
-      <td>{{ d.channel|default('—') }}</td>
-      <td>{{ h.status_pill(d.status) }}</td>
-      <td>{{ d.created_at|date('M j, Y · g:ia') }}{% if d.paid_at %}<br><small style="color:var(--admin-muted)">paid {{ d.paid_at|date('M j, g:ia') }}</small>{% endif %}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="6" style="text-align:center;color:var(--admin-muted);padding:24px">No donations yet.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="card admin-card mb-3">
+  <div class="card-body">
+    <form method="get" action="/admin/donations">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          {% set status_options = [
+            {value: 'pending',   label: 'Pending'},
+            {value: 'completed', label: 'Completed'},
+            {value: 'failed',    label: 'Failed'},
+            {value: 'abandoned', label: 'Abandoned'}
+          ] %}
+          {{ h.select('status', 'Status', status_options, filters.status|default(''), {blank: 'All'}) }}
+        </div>
+        <div class="col-md-3">{{ h.text('from', 'From', filters.from|default(''), {type: 'date'}) }}</div>
+        <div class="col-md-3">{{ h.text('to', 'To', filters.to|default(''), {type: 'date'}) }}</div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100"><i class="ri ri-filter-3-line"></i> Filter</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="admin-table-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Donor</th>
+          <th>Amount</th>
+          <th>Channel</th>
+          <th>Status</th>
+          <th>When</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in donations %}
+          <tr>
+            <td><code class="text-mono">{{ d.reference }}</code></td>
+            <td>
+              <div class="fw-semibold">{{ d.donor_name|default('—') }}</div>
+              <a href="mailto:{{ d.donor_email }}" class="text-muted small text-decoration-none">{{ d.donor_email }}</a>
+            </td>
+            <td><strong>{{ d.amount|number_format(2) }}</strong> <small class="text-muted">{{ d.currency }}</small></td>
+            <td>{{ d.channel|default('—') }}</td>
+            <td>{{ h.status_pill(d.status) }}</td>
+            <td>
+              <div class="small">{{ d.created_at|date('M j, Y · g:ia') }}</div>
+              {% if d.paid_at %}<div class="text-muted small">paid {{ d.paid_at|date('M j, g:ia') }}</div>{% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-5">
+            <i class="ri ri-money-dollar-circle-line d-block fs-1 opacity-25 mb-2"></i>
+            No donations yet.
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

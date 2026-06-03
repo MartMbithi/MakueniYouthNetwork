@@ -1,39 +1,45 @@
 {% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
 
 {% block title %}{{ mode == 'create' ? 'New partner' : 'Edit partner' }}{% endblock %}
 
-{% block content %}
-<form method="post" action="{{ action }}" enctype="multipart/form-data" class="admin-form">
-  {{ csrf_field()|raw }}
-  <div class="panel">
-    <div class="field">
-      <label for="name">Name</label>
-      <input type="text" id="name" name="name" value="{{ partner.name|default('') }}" required>
-    </div>
-    <div class="field" style="margin-top:16px">
-      <label for="url">URL</label>
-      <input type="url" id="url" name="url" value="{{ partner.url|default('') }}">
-    </div>
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="logo">Logo URL</label>
-        <input type="url" id="logo" name="logo" value="{{ partner.logo|default('') }}">
-        {% if partner.logo %}<div class="help"><img src="{{ partner.logo }}" alt="" style="max-height:48px;margin-top:6px"></div>{% endif %}
-      </div>
-      <div class="field">
-        <label for="logo_file">…or upload</label>
-        <input type="file" id="logo_file" name="logo_file" accept="image/jpeg,image/png,image/webp">
-      </div>
-    </div>
-    <div class="field" style="margin-top:16px">
-      <label for="sort_order">Display order</label>
-      <input type="number" id="sort_order" name="sort_order" value="{{ partner.sort_order|default(0) }}">
-    </div>
-  </div>
+{% block breadcrumb %}
+  {{ h.breadcrumbs([
+    {label: 'Dashboard', href: '/admin'},
+    {label: 'Partners',  href: '/admin/partners'},
+    {label: mode == 'create' ? 'New' : (partner.name|default('Edit'))}
+  ]) }}
+{% endblock %}
 
-  <div class="actions">
-    <button type="submit" class="admin-btn primary">{{ mode == 'create' ? 'Create' : 'Save' }}</button>
-    <a href="/admin/partners" class="admin-btn ghost">Cancel</a>
+{% block content %}
+{{ h.errors(errors|default([])) }}
+
+<form method="post" action="{{ action }}" enctype="multipart/form-data" novalidate>
+  {{ csrf_field()|raw }}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      {{ h.card_open('Partner details', 'team-line') }}
+        {{ h.text('name', 'Name', partner.name|default(''), {required: true, errors: errors|default([])}) }}
+        {{ h.text('url',  'Website URL', partner.url|default(''), {type: 'url', placeholder: 'https://...', errors: errors|default([])}) }}
+        {{ h.text('sort_order', 'Display order', partner.sort_order|default(0), {type: 'number', help: 'Lower numbers appear first.', errors: errors|default([])}) }}
+      {{ h.card_close() }}
+    </div>
+
+    <div class="col-lg-4">
+      {{ h.card_open('Save', 'checkbox-circle-line') }}
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="ri ri-checkbox-circle-line"></i> {{ mode == 'create' ? 'Create partner' : 'Save changes' }}
+          </button>
+          <a href="/admin/partners" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      {{ h.card_close() }}
+
+      {{ h.card_open('Logo', 'image-line') }}
+        {{ h.image_upload('logo', 'Partner logo', partner.logo|default(null), {hint: 'SVG, PNG, or WebP. Square or landscape both work.', errors: errors|default([])}) }}
+      {{ h.card_close() }}
+    </div>
   </div>
 </form>
 {% endblock %}

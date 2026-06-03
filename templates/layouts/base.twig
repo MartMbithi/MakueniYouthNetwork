@@ -70,6 +70,19 @@
 
   {% block head_jsonld %}{% endblock %}
 
+  {# Google Analytics (GA4) — admin-configured at /admin/settings.
+     Loads only when a measurement ID is present, and never on the admin
+     layout, so back-office traffic doesn't pollute reports. #}
+  {% if site.google_analytics_id|default('')|trim != '' %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.google_analytics_id|e('html_attr') }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ site.google_analytics_id|e('js') }}');
+    </script>
+  {% endif %}
+
   {% block head_extra %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">

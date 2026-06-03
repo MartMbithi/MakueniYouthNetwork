@@ -3,71 +3,83 @@
 
 {% block title %}{{ mode == 'create' ? 'New post' : 'Edit post' }}{% endblock %}
 
+{% block breadcrumb %}
+  {{ h.breadcrumbs([
+    {label: 'Dashboard', href: '/admin'},
+    {label: 'Posts',     href: '/admin/posts'},
+    {label: mode == 'create' ? 'New' : (post.title|default('Edit'))}
+  ]) }}
+{% endblock %}
+
+{% block actions %}
+  {% if post.id %}
+    <a href="/impact/{{ post.slug }}" target="_blank" rel="noopener" class="btn btn-outline-secondary">
+      <i class="ri ri-eye-line"></i> View live
+    </a>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 {{ h.errors(errors|default([])) }}
 
-<form method="post" action="{{ action }}" enctype="multipart/form-data" class="admin-form">
+<form method="post" action="{{ action }}" enctype="multipart/form-data" novalidate>
   {{ csrf_field()|raw }}
 
-  <div class="panel">
-    <div class="field">
-      <label for="title">Title</label>
-      <input type="text" id="title" name="title" value="{{ post.title|default('') }}" required>
+  <div class="row g-4">
+
+    {# ─── Main column: title, slug, body ─── #}
+    <div class="col-lg-8">
+      {{ h.card_open('Content', 'edit-box-line') }}
+        {{ h.text('title', 'Title', post.title|default(''), {required: true, errors: errors|default([]), placeholder: 'A clear, scannable title'}) }}
+        {{ h.text('slug',  'Slug',  post.slug|default(''),  {placeholder: 'auto-generated from title', help: 'URL: <code>/impact/' ~ (post.slug|default('your-slug')) ~ '</code>', errors: errors|default([])}) }}
+        {{ h.textarea('excerpt', 'Excerpt', post.excerpt|default(''), {rows: 3, help: 'Shown in lists and share previews (optional).', errors: errors|default([])}) }}
+        {{ h.richtext('body', 'Body', post.body|default(''), {required: true, errors: errors|default([])}) }}
+      {{ h.card_close() }}
     </div>
 
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="slug">Slug</label>
-        <input type="text" id="slug" name="slug" value="{{ post.slug|default('') }}" placeholder="auto-generated from title">
-        <div class="help">URL: <code>/impact/{{ post.slug|default('your-slug') }}</code></div>
-      </div>
-      <div class="field">
-        <label for="category_id">Category</label>
-        <select id="category_id" name="category_id">
-          <option value="">— none —</option>
-          {% for c in categories %}
-            <option value="{{ c.id }}" {{ post.category_id == c.id ? 'selected' : '' }}>{{ c.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
+    {# ─── Meta sidebar: publish, category, cover image ─── #}
+    <div class="col-lg-4">
+      {{ h.card_open('Publish', 'send-plane-line') }}
+        <div class="mb-3">
+          <label class="form-label">Status</label>
+          <div class="d-flex align-items-center gap-2">
+            {{ h.status_pill(post.status|default('draft')) }}
+            <span class="text-muted small">{{ post.published_at ? post.published_at|date('M j, Y · g:ia') : 'Not published yet' }}</span>
+          </div>
+        </div>
+        {{ h.text('published_at', 'Publish date/time', post.published_at ? post.published_at|date('Y-m-d\\TH:i') : '', {type: 'datetime-local', help: 'Leave blank to use now when publishing.', errors: errors|default([])}) }}
+        <div class="d-grid gap-2">
+          <button type="submit" name="action" value="publish" class="btn btn-primary">
+            <i class="ri ri-global-line"></i> {{ post.status == 'published' ? 'Update post' : 'Publish' }}
+          </button>
+          <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
+            <i class="ri ri-draft-line"></i> Save as draft
+          </button>
+        </div>
+      {{ h.card_close() }}
+
+      {{ h.card_open('Category', 'price-tag-3-line') }}
+        {% set cat_options = [] %}
+        {% for c in categories %}{% set cat_options = cat_options|merge([{value: c.id, label: c.name}]) %}{% endfor %}
+        {{ h.select('category_id', 'Category', cat_options, post.category_id|default(null), {blank: '— none —', errors: errors|default([])}) }}
+      {{ h.card_close() }}
+
+      {{ h.card_open('Cover image', 'image-line') }}
+        {{ h.image_upload('cover_image', 'Featured image', post.cover_image|default(null), {help: 'Used at the top of the post and in share previews.', errors: errors|default([])}) }}
+      {{ h.card_close() }}
+
+      {% if post.id %}
+        {{ h.card_open('Danger zone', 'shield-cross-line', 'border border-danger-subtle') }}
+          <p class="text-muted small mb-3">Deleting a post is permanent and cannot be undone.</p>
+          {{ h.delete_button('/admin/posts/' ~ post.id ~ '/delete', {label: 'Delete post', title: 'Delete this post?', text: 'The post "' ~ post.title ~ '" will be permanently removed.', confirm_text: 'Yes, delete it'}) }}
+        {{ h.card_close() }}
+      {% endif %}
     </div>
 
-    <div class="field" style="margin-top:16px">
-      <label for="excerpt">Excerpt <span style="color:var(--admin-muted);font-weight:400">(shown in lists; optional)</span></label>
-      <textarea id="excerpt" name="excerpt" style="min-height:80px">{{ post.excerpt|default('') }}</textarea>
-    </div>
-
-    <div class="field" style="margin-top:16px">
-      <label for="body">Body (HTML)</label>
-      <textarea id="body" name="body" required>{{ post.body|default('') }}</textarea>
-      <div class="help">Plain HTML. A rich-text editor will be wired in once we point the project at TinyMCE / Editor.js.</div>
-    </div>
-
-    <div class="field-row" style="margin-top:16px">
-      <div class="field">
-        <label for="cover_image">Cover image URL</label>
-        <input type="url" id="cover_image" name="cover_image" value="{{ post.cover_image|default('') }}">
-      </div>
-      <div class="field">
-        <label for="cover_image_file">…or upload (jpg/png/webp)</label>
-        <input type="file" id="cover_image_file" name="cover_image_file" accept="image/jpeg,image/png,image/webp">
-      </div>
-    </div>
-
-    <div class="field" style="margin-top:16px">
-      <label for="published_at">Publish date/time <span style="color:var(--admin-muted);font-weight:400">(blank = now)</span></label>
-      <input type="datetime-local" id="published_at" name="published_at" value="{{ post.published_at ? post.published_at|date('Y-m-d\\TH:i') : '' }}">
-    </div>
-  </div>
-
-  <div class="actions">
-    <button type="submit" name="action" value="draft"   class="admin-btn ghost">Save draft</button>
-    <button type="submit" name="action" value="publish" class="admin-btn primary">{{ post.status == 'published' ? 'Update' : 'Publish' }}</button>
-    {% if post.id %}
-      <a href="/impact/{{ post.slug }}" target="_blank" class="admin-btn amber">View live →</a>
-      <span style="flex:1"></span>
-      {{ h.delete_button('/admin/posts/' ~ post.id ~ '/delete') }}
-    {% endif %}
   </div>
 </form>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" referrerpolicy="origin"></script>
 {% endblock %}

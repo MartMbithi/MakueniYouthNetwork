@@ -1,66 +1,99 @@
 {% extends 'layouts/admin.twig' %}
+{% import 'admin/_partials/_form_helpers.twig' as h %}
 
 {% block title %}Site settings{% endblock %}
-{% block subtitle %}<div class="subtitle">These values appear in the public header and footer.</div>{% endblock %}
+
+{% block breadcrumb %}
+  {{ h.breadcrumbs([
+    {label: 'Dashboard', href: '/admin'},
+    {label: 'Settings'}
+  ]) }}
+{% endblock %}
+
+{% block subtitle %}
+  <p class="text-muted mb-0 small mt-1">Anything that used to live in <code>.env</code> for content, payments, mail, or analytics lives here now.</p>
+{% endblock %}
 
 {% block content %}
-<form method="post" action="/admin/settings" class="admin-form">
+<form method="post" action="/admin/settings" enctype="multipart/form-data" novalidate>
   {{ csrf_field()|raw }}
-  <div class="panel">
-    <div class="field-row">
-      <div class="field"><label for="name">Site name</label><input type="text" id="name" name="name" value="{{ settings.name|default('') }}"></div>
-      <div class="field"><label for="tagline">Tagline</label><input type="text" id="tagline" name="tagline" value="{{ settings.tagline|default('') }}"></div>
-    </div>
-    <div class="field-row" style="margin-top:16px">
-      <div class="field"><label for="phone">Phone</label><input type="tel" id="phone" name="phone" value="{{ settings.phone|default('') }}"></div>
-      <div class="field"><label for="email">Email</label><input type="email" id="email" name="email" value="{{ settings.email|default('') }}"></div>
-    </div>
-    <div class="field" style="margin-top:16px">
-      <label for="address">Address</label>
-      <input type="text" id="address" name="address" value="{{ settings.address|default('') }}">
-    </div>
-    <div class="field" style="margin-top:16px">
-      <label for="po_box">P.O. Box</label>
-      <input type="text" id="po_box" name="po_box" value="{{ settings.po_box|default('') }}">
-    </div>
-  </div>
 
-  <div class="panel">
-    <h3 style="font-family:'Fraunces',serif;font-size:1.1rem;margin:0 0 12px">Logo</h3>
-    <div class="field-row">
-      <div class="field">
-        <label for="logo">Logo (landscape, used in header/footer/admin)</label>
-        <input type="text" id="logo" name="logo" value="{{ settings.logo|default('/assets/img/logo.png') }}">
-        <div class="help">URL or local path. Defaults to <code>/assets/img/logo.png</code>. Leave blank to fall back to the "M" badge.</div>
-      </div>
-      <div class="field">
-        <label for="logo_square">Square logo (used for share previews / favicon)</label>
-        <input type="text" id="logo_square" name="logo_square" value="{{ settings.logo_square|default('/assets/img/logo-square.png') }}">
-        <div class="help">512×512 square version. Used as the default <code>og:image</code>.</div>
-      </div>
-    </div>
-    {% if settings.logo %}
-      <div class="help" style="margin-top:10px">
-        Current logo preview:<br>
-        <img src="{{ settings.logo }}" alt="" style="max-height:60px;background:var(--admin-bg);padding:8px 12px;border-radius:8px;margin-top:6px">
-      </div>
-    {% endif %}
-  </div>
+  <div class="row g-4">
 
-  <div class="panel">
-    <h3 style="font-family:'Fraunces',serif;font-size:1.1rem;margin:0 0 12px">Social links</h3>
-    <div class="field-row">
-      <div class="field"><label for="facebook">Facebook</label><input type="url" id="facebook" name="facebook" value="{{ settings.facebook|default('') }}"></div>
-      <div class="field"><label for="twitter">X / Twitter</label><input type="url" id="twitter" name="twitter" value="{{ settings.twitter|default('') }}"></div>
-    </div>
-    <div class="field" style="margin-top:16px">
-      <label for="linkedin">LinkedIn</label>
-      <input type="url" id="linkedin" name="linkedin" value="{{ settings.linkedin|default('') }}">
-    </div>
-  </div>
+    <div class="col-lg-8">
 
-  <div class="actions">
-    <button type="submit" class="admin-btn primary">Save settings</button>
+      {{ h.card_open('Organisation', 'building-line') }}
+        <div class="row g-3">
+          <div class="col-md-6">{{ h.text('name', 'Site name', settings.name|default(''), {required: true}) }}</div>
+          <div class="col-md-6">{{ h.text('tagline', 'Tagline', settings.tagline|default('')) }}</div>
+        </div>
+      {{ h.card_close() }}
+
+      {{ h.card_open('Contact', 'phone-line') }}
+        <div class="row g-3">
+          <div class="col-md-6">{{ h.text('phone', 'Phone', settings.phone|default(''), {type: 'tel'}) }}</div>
+          <div class="col-md-6">{{ h.text('email', 'Email', settings.email|default(''), {type: 'email'}) }}</div>
+        </div>
+        {{ h.text('address', 'Address', settings.address|default('')) }}
+        {{ h.text('po_box',  'P.O. Box', settings.po_box|default('')) }}
+      {{ h.card_close() }}
+
+      {{ h.card_open('Social links', 'share-line') }}
+        <div class="row g-3">
+          <div class="col-md-6">{{ h.text('facebook', 'Facebook', settings.facebook|default(''), {type: 'url', placeholder: 'https://facebook.com/...'}) }}</div>
+          <div class="col-md-6">{{ h.text('twitter',  'X / Twitter', settings.twitter|default(''),  {type: 'url', placeholder: 'https://x.com/...'}) }}</div>
+        </div>
+        {{ h.text('linkedin', 'LinkedIn', settings.linkedin|default(''), {type: 'url', placeholder: 'https://linkedin.com/...'}) }}
+      {{ h.card_close() }}
+
+      {{ h.card_open('Payments — Paystack', 'bank-card-line') }}
+        <div class="row g-3">
+          <div class="col-md-4">
+            {% set paystack_env_options = [
+              {value: 'test', label: 'Test mode'},
+              {value: 'live', label: 'Live mode'}
+            ] %}
+            {{ h.select('paystack_env', 'Environment', paystack_env_options, settings.paystack_env|default('test'), {help: 'Switch to <strong>Live</strong> only when ready to accept real payments.'}) }}
+          </div>
+          <div class="col-md-4">{{ h.text('paystack_currency', 'Currency', settings.paystack_currency|default('KES'), {placeholder: 'KES', help: 'ISO code, e.g. KES, USD, NGN.'}) }}</div>
+          <div class="col-md-4">{{ h.text('paystack_public_key', 'Public key', settings.paystack_public_key|default(''), {placeholder: settings.paystack_env|default('test') == 'live' ? 'pk_live_...' : 'pk_test_...', help: 'Visible in the browser — safe to expose.'}) }}</div>
+        </div>
+        {{ h.secret_input('paystack_secret_key', 'Secret key', secrets.paystack_secret_key.is_set|default(false), secrets.paystack_secret_key.tail|default(''), {placeholder: settings.paystack_env|default('test') == 'live' ? 'sk_live_...' : 'sk_test_...', help: 'Never leaves the server. Also signs incoming webhooks.'}) }}
+        {{ h.text('paystack_callback_url', 'Callback URL', settings.paystack_callback_url|default(''), {type: 'url', placeholder: 'https://makueniyouth.org/donate/callback', help: 'Where Paystack sends donors after a successful transaction. Must match the URL whitelist in your Paystack dashboard.'}) }}
+      {{ h.card_close() }}
+
+      {{ h.card_open('Email — SMTP', 'mail-send-line') }}
+        <div class="row g-3">
+          <div class="col-md-8">{{ h.text('mail_host', 'SMTP host', settings.mail_host|default(''), {placeholder: 'mail.makueniyouth.org'}) }}</div>
+          <div class="col-md-4">{{ h.text('mail_port', 'Port', settings.mail_port|default('587'), {type: 'number', placeholder: '587', help: '587 for STARTTLS, 465 for SMTPS.'}) }}</div>
+        </div>
+        {{ h.text('mail_user', 'Username', settings.mail_user|default(''), {placeholder: 'info@makueniyouth.org', autocomplete: 'off'}) }}
+        {{ h.secret_input('mail_pass', 'Password', secrets.mail_pass.is_set|default(false), secrets.mail_pass.tail|default(''), {placeholder: 'mailbox password'}) }}
+        {{ h.text('mail_from', 'From address', settings.mail_from|default(''), {type: 'email', placeholder: 'info@makueniyouth.org', help: 'Address that appears in the From: header of outgoing mail.'}) }}
+      {{ h.card_close() }}
+
+      {{ h.card_open('Google Analytics', 'line-chart-line') }}
+        {{ h.text('google_analytics_id', 'Measurement ID', settings.google_analytics_id|default(''), {placeholder: 'G-XXXXXXXXXX', help: 'GA4 measurement ID. Leave blank to disable analytics entirely. Loaded only on public pages — the back office is never tracked.'}) }}
+      {{ h.card_close() }}
+
+    </div>
+
+    <div class="col-lg-4">
+      {{ h.card_open('Save', 'checkbox-circle-line') }}
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">
+            <i class="ri ri-checkbox-circle-line"></i> Save settings
+          </button>
+        </div>
+        <p class="form-text mt-3 mb-0">Changes take effect immediately. Secrets are stored in the database and never displayed again in plain text.</p>
+      {{ h.card_close() }}
+
+      {{ h.card_open('Brand', 'palette-line') }}
+        {{ h.image_upload('logo', 'Landscape logo', settings.logo|default(null), {help: 'Used in the header, footer, and admin sidebar. Leave empty to use the default <code>/assets/img/logo.png</code>.'}) }}
+        {{ h.image_upload('logo_square', 'Square logo', settings.logo_square|default(null), {help: '512×512 square version. Used for the favicon, app icon, and social share preview.', accept: 'image/jpeg,image/png,image/webp,image/svg+xml'}) }}
+      {{ h.card_close() }}
+    </div>
+
   </div>
 </form>
 {% endblock %}

@@ -136,10 +136,12 @@ use RuntimeException;
 
 final class Paystack
 {
-    private static string $secretKey = '';
-    private static string $publicKey = '';
-    private static string $currency  = 'KES';
-    private static string $baseUrl   = 'https://api.paystack.co';
+    private static string $secretKey   = '';
+    private static string $publicKey   = '';
+    private static string $currency    = 'KES';
+    private static string $baseUrl     = 'https://api.paystack.co';
+    private static string $env         = 'test';
+    private static string $callbackUrl = '';
 
     /**
      * @param array{
@@ -149,10 +151,12 @@ final class Paystack
      */
     public static function configure(array $config): void
     {
-        self::$secretKey = (string) ($config['secret_key'] ?? '');
-        self::$publicKey = (string) ($config['public_key'] ?? '');
-        self::$currency  = (string) ($config['currency']   ?? 'KES');
-        self::$baseUrl   = rtrim((string) ($config['base_url'] ?? 'https://api.paystack.co'), '/');
+        self::$secretKey   = (string) ($config['secret_key']   ?? '');
+        self::$publicKey   = (string) ($config['public_key']   ?? '');
+        self::$currency    = strtoupper((string) ($config['currency'] ?? 'KES')) ?: 'KES';
+        self::$baseUrl     = rtrim((string) ($config['base_url'] ?? 'https://api.paystack.co'), '/');
+        self::$env         = (string) ($config['env']          ?? 'test');
+        self::$callbackUrl = (string) ($config['callback_url'] ?? '');
     }
 
     public static function publicKey(): string
@@ -163,6 +167,21 @@ final class Paystack
     public static function currency(): string
     {
         return self::$currency;
+    }
+
+    public static function env(): string
+    {
+        return self::$env;
+    }
+
+    public static function callbackUrl(): string
+    {
+        return self::$callbackUrl;
+    }
+
+    public static function isConfigured(): bool
+    {
+        return self::$secretKey !== '' && self::$publicKey !== '';
     }
 
     /**

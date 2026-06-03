@@ -170,7 +170,7 @@ final class EventController
             return $this->renderForm($data, $errors, 'create', '/admin/events');
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], null);
-        $cover = $this->uploadOrUrl($data['cover_file']);
+        $cover = ImageProcessor::resolve('cover_image', null);
 
         $id = Event::create([
             'slug'        => $slug,
@@ -216,7 +216,7 @@ final class EventController
             return $this->renderForm(array_merge($event, $data), $errors, 'edit', '/admin/events/' . $id);
         }
         $slug = $this->resolveSlug($data['slug'] !== '' ? $data['slug'] : $data['title'], (int) $id);
-        $cover = $this->uploadOrUrl($data['cover_file']) ?? $event['cover_image'];
+        $cover = ImageProcessor::resolve('cover_image', $event['cover_image'] ?? null);
 
         Event::update((int) $id, [
             'slug'        => $slug,
@@ -278,20 +278,6 @@ final class EventController
             $row = $stmt->fetch();
             return $row !== false && (int) $row['id'] !== $id;
         });
-    }
-
-    /** @param array<string,mixed>|null $upload */
-    private function uploadOrUrl(?array $upload): ?string
-    {
-        if ($upload !== null) {
-            try {
-                return ImageProcessor::store($upload);
-            } catch (\Throwable $e) {
-                View::flash('Cover upload failed: ' . $e->getMessage(), 'error');
-            }
-        }
-        $url = trim((string) Request::input('cover_image', ''));
-        return $url !== '' ? $url : null;
     }
 
     private function renderForm(array $event, array $errors, string $mode, string $action): string

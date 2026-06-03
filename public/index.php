@@ -134,6 +134,7 @@ use App\Core\Database;
 use App\Core\Response;
 use App\Core\Router;
 use App\Core\View;
+use App\Models\Setting;
 use App\Services\ImageProcessor;
 use App\Services\Mailer;
 use App\Services\Paystack;
@@ -154,9 +155,33 @@ ini_set('error_log', $rootDir . '/storage/logs/app.log');
 
 Database::configure($config['db']);
 View::configure($rootDir . '/templates', $isLocal);
-Mailer::configure($config['mail']);
 ImageProcessor::configure($rootDir . '/public/uploads', '/uploads/');
-Paystack::configure($config['paystack']);
+
+// SMTP + Paystack settings live in the database, not .env, so admins can
+// rotate them through the back office without redeploying. We read them
+// once at bootstrap. If the settings table isn't reachable (fresh install,
+// migrations not yet run), the services start un-configured and no-op
+// until the admin logs in and sets them.
+try {
+    $s = Setting::all();
+    Mailer::configure([
+        'host' => $s['mail_host'] ?? null,
+        'port' => (int) ($s['mail_port'] ?? 587),
+        'user' => $s['mail_user'] ?? null,
+        'pass' => $s['mail_pass'] ?? null,
+        'from' => $s['mail_from'] ?? 'no-reply@makueniyouth.org',
+    ]);
+    Paystack::configure([
+        'secret_key'   => $s['paystack_secret_key']   ?? null,
+        'public_key'   => $s['paystack_public_key']   ?? null,
+        'currency'     => $s['paystack_currency']     ?? 'KES',
+        'base_url'     => 'https://api.paystack.co',
+        'env'          => $s['paystack_env']          ?? 'test',
+        'callback_url' => $s['paystack_callback_url'] ?? null,
+    ]);
+} catch (\Throwable $e) {
+    error_log('[Bootstrap] runtime settings unavailable: ' . $e->getMessage());
+}
 
 set_exception_handler(static function (\Throwable $e) use ($isLocal): void {
     error_log('[' . date('c') . '] ' . $e::class . ': ' . $e->getMessage()

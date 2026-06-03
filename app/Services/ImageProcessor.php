@@ -132,10 +132,52 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\Request;
+use App\Core\View;
 use RuntimeException;
 
 final class ImageProcessor
 {
+    /**
+     * Resolve the final value for an image column from a form submission.
+     *
+     * Honours the three-state image control rendered by the `image_upload`
+     * Twig macro:
+     *   1. Explicit "remove" checkbox (`remove_<name>=1`) — return null.
+     *   2. A real file upload at `<name>_file` — store it, return URL.
+     *   3. A non-empty URL at `<name>` — return that URL.
+     *   4. Otherwise — keep the existing value (so a no-op save doesn't
+     *      blank the column).
+     *
+     * On upload failure, flashes an error and falls back to `$existing`.
+     *
+     * @param string      $name     Logical field name, e.g. "cover_image"
+     * @param string|null $existing Current persisted value (null on create)
+     */
+    public static function resolve(string $name, ?string $existing): ?string
+    {
+        if ((string) Request::input('remove_' . $name, '0') === '1') {
+            return null;
+        }
+
+        $upload = Request::file($name . '_file');
+        if ($upload !== null) {
+            try {
+                return self::store($upload);
+            } catch (\Throwable $e) {
+                View::flash(ucfirst(str_replace('_', ' ', $name)) . ' upload failed: ' . $e->getMessage(), 'error');
+                return $existing;
+            }
+        }
+
+        $url = trim((string) Request::input($name, ''));
+        if ($url !== '') {
+            return $url;
+        }
+
+        return $existing;
+    }
+
     private const ALLOWED_EXT  = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'avif', 'pdf'];
     private const ALLOWED_MIME = [
         'image/jpeg', 'image/png', 'image/webp', 'image/gif',

@@ -167,19 +167,8 @@ return [
         'pass'    => $env('DB_PASS', ''),
         'charset' => 'utf8mb4',
     ],
-    'mail' => [
-        'host' => $env('MAIL_HOST'),
-        'port' => (int) ($env('MAIL_PORT', '587') ?? 587),
-        'user' => $env('MAIL_USER'),
-        'pass' => $env('MAIL_PASS'),
-        'from' => $env('MAIL_FROM', 'no-reply@makueniyouth.org'),
-    ],
-    'paystack' => [
-        'env'          => $env('PAYSTACK_ENV', 'test'),
-        'public_key'   => $env('PAYSTACK_PUBLIC_KEY'),
-        'secret_key'   => $env('PAYSTACK_SECRET_KEY'),
-        'callback_url' => $env('PAYSTACK_CALLBACK_URL'),
-        'currency'     => strtoupper($env('PAYSTACK_CURRENCY', 'KES') ?? 'KES'),
-        'base_url'     => 'https://api.paystack.co',
-    ],
+    // Mail (SMTP) and Paystack configuration are no longer loaded from .env.
+    // They live in the `settings` database table and are managed via the admin
+    // back office at /admin/settings. Bootstrap reads them in public/index.php
+    // once the database connection is up.
 ];

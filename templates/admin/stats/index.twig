@@ -2,26 +2,52 @@
 {% import 'admin/_partials/_form_helpers.twig' as h %}
 
 {% block title %}Stats{% endblock %}
-{% block actions %}<a href="/admin/stats/create" class="admin-btn primary">+ New stat</a>{% endblock %}
+
+{% block breadcrumb %}
+  {{ h.breadcrumbs([{label: 'Dashboard', href: '/admin'}, {label: 'Stats'}]) }}
+{% endblock %}
+
+{% block subtitle %}
+  <p class="text-muted mb-0 small mt-1">These appear in the green stripe on the homepage.</p>
+{% endblock %}
+
+{% block actions %}
+  <a href="/admin/stats/create" class="btn btn-primary"><i class="ri ri-add-line"></i> New stat</a>
+{% endblock %}
 
 {% block content %}
-<p style="color:var(--admin-muted);margin-bottom:16px">These appear in the green stripe on the homepage.</p>
-<table class="admin-table">
-  <thead><tr><th>Value</th><th>Label</th><th>Order</th><th></th></tr></thead>
-  <tbody>
-  {% for s in stats %}
-    <tr>
-      <td><a href="/admin/stats/{{ s.id }}/edit" style="font-family:'Fraunces',serif;font-size:1.2rem">{{ s.value }}</a></td>
-      <td>{{ s.label }}</td>
-      <td>{{ s.sort_order }}</td>
-      <td class="row-actions">
-        <a class="admin-btn small ghost" href="/admin/stats/{{ s.id }}/edit">Edit</a>
-        {{ h.delete_button('/admin/stats/' ~ s.id ~ '/delete') }}
-      </td>
-    </tr>
-  {% else %}
-    <tr><td colspan="4" style="text-align:center;color:var(--admin-muted);padding:24px">No stats yet.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="admin-table-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Label</th>
+          <th>Order</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in stats %}
+          <tr>
+            <td><a href="/admin/stats/{{ s.id }}/edit" class="font-display fs-5 text-decoration-none">{{ s.value }}</a></td>
+            <td class="fw-semibold">{{ s.label }}</td>
+            <td><span class="badge bg-light text-dark border">{{ s.sort_order }}</span></td>
+            <td class="text-end">
+              <div class="row-actions justify-content-end">
+                <a class="btn btn-sm btn-outline-primary" href="/admin/stats/{{ s.id }}/edit" title="Edit"><i class="ri ri-pencil-line"></i></a>
+                {{ h.delete_button('/admin/stats/' ~ s.id ~ '/delete', {icon_only: true, title: 'Delete this stat?', text: 'The stat will be permanently removed from the homepage.'}) }}
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-5">
+            <i class="ri ri-bar-chart-line d-block fs-1 opacity-25 mb-2"></i>
+            No stats yet.
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

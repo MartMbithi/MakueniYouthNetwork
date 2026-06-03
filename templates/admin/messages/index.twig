@@ -3,30 +3,62 @@
 
 {% block title %}Messages{% endblock %}
 
+{% block breadcrumb %}
+  {{ h.breadcrumbs([{label: 'Dashboard', href: '/admin'}, {label: 'Messages'}]) }}
+{% endblock %}
+
 {% block content %}
-<table class="admin-table">
-  <thead><tr><th></th><th>From</th><th>Subject</th><th>Received</th><th></th></tr></thead>
-  <tbody>
-  {% for m in messages %}
-    <tr style="{{ m.is_read ? '' : 'background:#fffaef' }}">
-      <td style="width:24px">{% if not m.is_read %}<span style="display:inline-block;width:10px;height:10px;background:var(--admin-amber);border-radius:50%"></span>{% endif %}</td>
-      <td><strong>{{ m.name }}</strong><br><a href="mailto:{{ m.email }}" style="color:var(--admin-muted);font-size:.82rem">{{ m.email }}</a></td>
-      <td>
-        <div style="font-weight:600">{{ m.subject|default('(no subject)') }}</div>
-        <div style="color:var(--admin-muted);font-size:.86rem;max-width:520px">{{ m.body|slice(0,180) }}{{ m.body|length > 180 ? '…' : '' }}</div>
-      </td>
-      <td>{{ m.created_at|date('M j, Y · g:ia') }}</td>
-      <td class="row-actions">
-        <form method="post" action="/admin/messages/{{ m.id }}/toggle" style="display:inline">
-          {{ csrf_field()|raw }}
-          <button type="submit" class="admin-btn small ghost">{{ m.is_read ? 'Mark unread' : 'Mark read' }}</button>
-        </form>
-        {{ h.delete_button('/admin/messages/' ~ m.id ~ '/delete') }}
-      </td>
-    </tr>
-  {% else %}
-    <tr><td colspan="5" style="text-align:center;color:var(--admin-muted);padding:24px">No messages yet.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="admin-table-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width:24px"></th>
+          <th>From</th>
+          <th>Message</th>
+          <th>Received</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in messages %}
+          <tr class="{{ m.is_read ? '' : 'table-warning bg-opacity-25' }}">
+            <td>
+              {% if not m.is_read %}
+                <span class="d-inline-block rounded-circle bg-warning" style="width:10px;height:10px" title="Unread"></span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-semibold">{{ m.name }}</div>
+              <a href="mailto:{{ m.email }}" class="text-muted small text-decoration-none">
+                <i class="ri ri-mail-line"></i> {{ m.email }}
+              </a>
+            </td>
+            <td style="max-width:520px">
+              <div class="fw-semibold">{{ m.subject|default('(no subject)') }}</div>
+              <div class="text-muted small">{{ m.body|slice(0,180) }}{{ m.body|length > 180 ? '…' : '' }}</div>
+            </td>
+            <td><span class="text-muted small">{{ m.created_at|date('M j, Y · g:ia') }}</span></td>
+            <td class="text-end">
+              <div class="row-actions justify-content-end">
+                <form method="post" action="/admin/messages/{{ m.id }}/toggle" class="d-inline m-0">
+                  {{ csrf_field()|raw }}
+                  <button type="submit" class="btn btn-sm btn-outline-secondary" title="{{ m.is_read ? 'Mark unread' : 'Mark read' }}">
+                    <i class="ri ri-{{ m.is_read ? 'mail-line' : 'mail-open-line' }}"></i>
+                  </button>
+                </form>
+                {{ h.delete_button('/admin/messages/' ~ m.id ~ '/delete', {icon_only: true, title: 'Delete this message?', text: 'The message from ' ~ m.name ~ ' will be permanently removed.'}) }}
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-5">
+            <i class="ri ri-mail-open-line d-block fs-1 opacity-25 mb-2"></i>
+            No messages yet.
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
