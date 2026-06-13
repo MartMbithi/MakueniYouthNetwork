@@ -196,6 +196,14 @@ final class View
         self::$globals[$key] = $value;
     }
 
+    public static function exists(string $template): bool
+    {
+        if (self::$twig === null) {
+            return false;
+        }
+        return self::$twig->getLoader()->exists($template);
+    }
+
     /** @param array<string,mixed> $data */
     public static function render(string $template, array $data = []): string
     {

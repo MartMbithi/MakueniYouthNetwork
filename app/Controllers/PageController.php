@@ -145,7 +145,18 @@ final class PageController
             Response::notFound();
             return '';
         }
-        return View::render('public/page-show.twig', [
+
+        // Slug-specific template wins when present (e.g. page-about.twig);
+        // restricts the lookup to kebab-case to keep it filesystem-safe.
+        $template = 'public/page-show.twig';
+        if (preg_match('/^[a-z0-9-]+$/', $slug)) {
+            $candidate = 'public/page-' . $slug . '.twig';
+            if (View::exists($candidate)) {
+                $template = $candidate;
+            }
+        }
+
+        return View::render($template, [
             'page'  => $page,
             'title' => $page['title'],
         ]);
