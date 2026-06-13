@@ -137,7 +137,7 @@ INSERT INTO partners (id, name, logo, url, sort_order) VALUES
 INSERT INTO pages (slug, title, body, meta_desc, hero_image, status) VALUES
   ('about',
    'About Makueni Youth Network',
-   '<p>Makueni Youth Network CBO was founded in 2014 to build a movement of young people committed to driving positive change across social, educational, political and economic spaces.</p><p>We believe young people are transformative leaders. Our mission is to mobilize, collaborate, empower and transform youth to actively engage in decision-making — increasing representation and grassroots civic action.</p><h2>Our Vision</h2><p>A just community where young people enjoy dignified lives.</p><h2>Our Mission</h2><p>To enhance the purpose, rights and talents of young people as active citizens and agents of change.</p>',
+   '<p>Makueni Youth Network CBO was founded in 2014 to build a movement of young people committed to driving positive change across social, educational, political and economic spaces.</p><p>We believe young people are transformative leaders. We mobilize, collaborate, empower and transform youth to actively engage in decision-making — increasing representation and grassroots civic action across the county.</p>',
    'Youth-led community-based organization in Wote, Makueni County, founded 2014.',
    NULL, 'published'),
 
