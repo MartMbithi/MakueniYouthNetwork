@@ -1,47 +1,29 @@
 <footer class="site-footer" id="footer">
   <div class="wrap">
-    <div class="foot-grid">
-      <div>
+    <div class="foot-top">
+      <a href="/" class="foot-brand">
         {% if site.logo %}
-          <div class="brand-logo-light"><img src="{{ site.logo }}" alt="{{ site.name }}" width="200" height="54" loading="lazy"></div>
+          <div class="brand-logo-light"><img src="{{ site.logo }}" alt="{{ site.name }}" width="160" height="44" loading="lazy"></div>
         {% else %}
           <div class="brand"><span class="mark">M</span><span>{{ site.name }}</span></div>
         {% endif %}
-        <p class="foot-about">A youth-led organization empowering young people in Makueni County to lead change in social, economic, education and political life.</p>
-        <div class="socials">
-          <a href="{{ site.facebook|default('#') }}" aria-label="Facebook">f</a>
-          <a href="{{ site.twitter|default('#') }}" aria-label="X">X</a>
-          <a href="{{ site.linkedin|default('#') }}" aria-label="LinkedIn">in</a>
-        </div>
-      </div>
-      <div>
-        <h4>Programs</h4>
-        <ul>
-          <li><a href="/programs/advocacy-civic-engagement">Advocacy &amp; Civic Engagement</a></li>
-          <li><a href="/programs/leadership-talent-development">Leadership &amp; Talent</a></li>
-          <li><a href="/programs/education-capacity-enhancement">Education &amp; Capacity</a></li>
-          <li><a href="/programs/youth-mentorship">Youth Mentorship</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Quick Links</h4>
-        <ul>
-          <li><a href="/about">Who We Are</a></li>
-          <li><a href="/impact">Our Impact</a></li>
-          <li><a href="/events">Events</a></li>
-          <li><a href="/donate">Donate</a></li>
-        </ul>
-      </div>
-      <div class="foot-contact">
-        <h4>Visit Us</h4>
-        <p>{{ site.address|default('Famo House, 2nd Flr, Rm 14, Behind Equity Bank, Wote Town')|nl2br }}</p>
-        <p>{{ site.po_box|default('P.O Box 405 – 90300, Wote, Makueni') }}</p>
-        <p>{{ site.phone|default('+254 710 580 604') }}</p>
-        <p><a href="mailto:{{ site.email }}" style="color:var(--amber)">{{ site.email }}</a></p>
+      </a>
+      <div class="socials">
+        <a href="{{ site.facebook|default('#') }}" aria-label="Facebook">f</a>
+        <a href="{{ site.twitter|default('#') }}" aria-label="X">X</a>
+        <a href="{{ site.linkedin|default('#') }}" aria-label="LinkedIn">in</a>
+        <a href="{{ site.instagram|default('#') }}" aria-label="Instagram">ig</a>
       </div>
     </div>
     <div class="foot-bottom">
       <span>© {{ year }} {{ site.name }}. All rights reserved.</span>
+      <nav class="foot-bottom-links">
+        <a href="/about">About Us</a>
+        <a href="/contact">Contact Us</a>
+        <a href="/contact#location">Visit Us</a>
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/terms">Terms &amp; Conditions</a>
+      </nav>
     </div>
   </div>
 </footer>
