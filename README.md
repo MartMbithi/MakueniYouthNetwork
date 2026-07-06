@@ -29,6 +29,83 @@ php -S localhost:8000 -t public server.php
 
 Browse to <http://localhost:8000/>.
 
+### Running with XAMPP (macOS and Windows)
+
+Use XAMPP only for MySQL — run the app itself with PHP's built-in server so
+Apache VirtualHosts and hosts-file edits are not needed. The project must
+still live inside XAMPP's `htdocs`.
+
+**1. Place the project inside `htdocs`**
+
+| OS | Target path |
+|---|---|
+| macOS | `/Applications/XAMPP/xamppfiles/htdocs/MakueniYouthNetwork/` |
+| Windows | `C:\xampp\htdocs\MakueniYouthNetwork\` |
+
+**2. Start MySQL** from the XAMPP Control Panel. Apache does not need to run.
+
+**3. Create the database**
+
+Open <http://localhost/phpmyadmin>, click **New**, create a database called
+`myn` with collation `utf8mb4_unicode_ci`, then load the schema and seed.
+
+macOS (Terminal):
+
+```bash
+/Applications/XAMPP/xamppfiles/bin/mysql -u root myn < database/schema.sql
+/Applications/XAMPP/xamppfiles/bin/mysql -u root myn < database/seed.sql
+```
+
+Windows (Command Prompt):
+
+```bat
+C:\xampp\mysql\bin\mysql -u root myn < database\schema.sql
+C:\xampp\mysql\bin\mysql -u root myn < database\seed.sql
+```
+
+Or import both `.sql` files via **phpMyAdmin → Import**.
+
+**4. Install PHP dependencies and configure `.env`**
+
+```bash
+composer install
+cp .env.example .env       # macOS
+copy .env.example .env     # Windows
+```
+
+Edit `.env` so it matches XAMPP's MySQL defaults:
+
+```
+DB_HOST=127.0.0.1
+DB_NAME=myn
+DB_USER=root
+DB_PASS=
+APP_URL=http://localhost:8000
+APP_ENV=local
+```
+
+**5. Start the app**
+
+Run the built-in PHP dev server from the project root, using XAMPP's PHP so
+extensions (`pdo_mysql`, `mbstring`, `gd`, `openssl`, `curl`) are guaranteed
+present.
+
+macOS (Terminal, from the project directory):
+
+```bash
+/Applications/XAMPP/xamppfiles/bin/php -S localhost:8000 -t public server.php
+```
+
+Windows (Command Prompt, from the project directory):
+
+```bat
+C:\xampp\php\php.exe -S localhost:8000 -t public server.php
+```
+
+Browse to <http://localhost:8000/>.
+
+If you see a blank page or a 500, check `storage/logs/app.log`.
+
 ### First admin login
 
 After running `seed.sql`:
