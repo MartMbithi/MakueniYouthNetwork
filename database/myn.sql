@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost
--- Generation Time: Jul 06, 2026 at 10:41 AM
--- Server version: 10.4.28-MariaDB
--- PHP Version: 8.2.4
+-- Host: 127.0.0.1
+-- Generation Time: Jul 21, 2026 at 11:37 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,6 +20,31 @@ SET time_zone = "+00:00";
 --
 -- Database: `myn`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `advocacy_content`
+--
+
+CREATE TABLE `advocacy_content` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `content_type` enum('campaign','opportunity','resource','media') NOT NULL,
+  `slug` varchar(180) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `summary` text DEFAULT NULL,
+  `body` longtext DEFAULT NULL,
+  `category` varchar(120) DEFAULT NULL,
+  `organization` varchar(180) DEFAULT NULL,
+  `location` varchar(180) DEFAULT NULL,
+  `deadline` date DEFAULT NULL,
+  `external_url` varchar(500) DEFAULT NULL,
+  `file_url` varchar(500) DEFAULT NULL,
+  `status` enum('draft','published') NOT NULL DEFAULT 'draft',
+  `published_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -86,6 +111,23 @@ CREATE TABLE `events` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `faqs`
+--
+
+CREATE TABLE `faqs` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `question` varchar(500) NOT NULL,
+  `answer` longtext NOT NULL,
+  `category` varchar(120) DEFAULT NULL,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `status` enum('draft','published') NOT NULL DEFAULT 'published',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `messages`
 --
 
@@ -105,6 +147,20 @@ CREATE TABLE `messages` (
 
 INSERT INTO `messages` (`id`, `name`, `email`, `subject`, `body`, `is_read`, `created_at`) VALUES
 (1, 'Test Person', 'test@example.com', 'Test from curl', 'Verification submission from M3.5 acceptance run.', 1, '2026-05-22 10:31:39');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `newsletter_subscribers`
+--
+
+CREATE TABLE `newsletter_subscribers` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `email` varchar(190) NOT NULL,
+  `name` varchar(150) DEFAULT NULL,
+  `status` enum('active','unsubscribed') NOT NULL DEFAULT 'active',
+  `subscribed_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -132,6 +188,40 @@ INSERT INTO `pages` (`id`, `slug`, `title`, `body`, `meta_desc`, `hero_image`, `
 (2, 'contact', 'Get in touch', '<p>Reach us at Famo House, 2nd Floor, Room 14, behind Equity Bank in Wote Town. Call <a href=\"tel:+254710580604\">+254 710 580 604</a> or email <a href=\"mailto:info@makueniyouth.org\">info@makueniyouth.org</a>.</p>', 'Contact Makueni Youth Network — Wote, Makueni County.', NULL, 'published', '2026-05-22 12:43:32'),
 (3, 'donate', 'Donate to Makueni Youth Network', '<p>Every donation funds civic training, mentorship and advocacy across Makueni County. Donations are processed securely via Paystack — card, mobile money or bank transfer.</p>', 'Donate to support youth-led civic action in Makueni County.', NULL, 'published', '2026-05-22 12:43:32'),
 (4, 'volunteer', 'Volunteer with us', '<p>We are always looking for volunteers — assessors for our Foundational Literacy &amp; Numeracy work, mentors for the 2026 cohort, and event organisers for our county forums.</p>', 'Volunteer with Makueni Youth Network in Wote, Makueni County.', NULL, 'published', '2026-05-22 12:43:32');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `page_views`
+--
+
+CREATE TABLE `page_views` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `path` varchar(255) NOT NULL,
+  `viewed_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `page_views`
+--
+
+INSERT INTO `page_views` (`id`, `path`, `viewed_at`) VALUES
+(1, '/media', '2026-07-21 10:56:58'),
+(2, '/search', '2026-07-21 11:19:27'),
+(3, '/search', '2026-07-21 11:19:31'),
+(4, '/search', '2026-07-21 11:25:16'),
+(5, '/faq', '2026-07-21 11:26:51'),
+(6, '/campaigns', '2026-07-21 11:27:10'),
+(7, '/opportunities', '2026-07-21 11:27:36'),
+(8, '/resources', '2026-07-21 11:27:48'),
+(9, '/media', '2026-07-21 11:28:00'),
+(10, '/media', '2026-07-21 11:28:16'),
+(11, '/faq', '2026-07-21 11:47:25'),
+(12, '/campaigns', '2026-07-21 11:47:38'),
+(13, '/opportunities', '2026-07-21 11:47:59'),
+(14, '/resources', '2026-07-21 11:48:09'),
+(15, '/media', '2026-07-21 11:48:22'),
+(16, '/search', '2026-07-21 11:48:50');
 
 -- --------------------------------------------------------
 
@@ -330,6 +420,15 @@ INSERT INTO `volunteers` (`id`, `full_name`, `email`, `phone`, `interest`, `mess
 --
 
 --
+-- Indexes for table `advocacy_content`
+--
+ALTER TABLE `advocacy_content`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_advocacy_slug` (`slug`),
+  ADD KEY `idx_advocacy_type_status` (`content_type`,`status`),
+  ADD KEY `idx_advocacy_deadline` (`deadline`);
+
+--
 -- Indexes for table `categories`
 --
 ALTER TABLE `categories`
@@ -353,10 +452,25 @@ ALTER TABLE `events`
   ADD KEY `idx_events_start` (`starts_at`);
 
 --
+-- Indexes for table `faqs`
+--
+ALTER TABLE `faqs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_faq_status_order` (`status`,`sort_order`);
+
+--
 -- Indexes for table `messages`
 --
 ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `newsletter_subscribers`
+--
+ALTER TABLE `newsletter_subscribers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_newsletter_email` (`email`),
+  ADD KEY `idx_newsletter_status` (`status`);
 
 --
 -- Indexes for table `pages`
@@ -364,6 +478,14 @@ ALTER TABLE `messages`
 ALTER TABLE `pages`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `slug` (`slug`);
+
+--
+-- Indexes for table `page_views`
+--
+ALTER TABLE `page_views`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_page_views_path` (`path`),
+  ADD KEY `idx_page_views_date` (`viewed_at`);
 
 --
 -- Indexes for table `partners`
@@ -419,6 +541,12 @@ ALTER TABLE `volunteers`
 --
 
 --
+-- AUTO_INCREMENT for table `advocacy_content`
+--
+ALTER TABLE `advocacy_content`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
@@ -437,16 +565,34 @@ ALTER TABLE `events`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `faqs`
+--
+ALTER TABLE `faqs`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
+-- AUTO_INCREMENT for table `newsletter_subscribers`
+--
+ALTER TABLE `newsletter_subscribers`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `pages`
 --
 ALTER TABLE `pages`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+
+--
+-- AUTO_INCREMENT for table `page_views`
+--
+ALTER TABLE `page_views`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `partners`
@@ -505,61 +651,3 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
--- Makueni Youth Network: Advocacy Platform Phase 1 upgrade
--- Safe to run against an existing MYN database. No existing tables/data are dropped.
-
-CREATE TABLE IF NOT EXISTS `advocacy_content` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `content_type` enum('campaign','opportunity','resource','media') NOT NULL,
-  `slug` varchar(180) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `summary` text DEFAULT NULL,
-  `body` longtext DEFAULT NULL,
-  `category` varchar(120) DEFAULT NULL,
-  `organization` varchar(180) DEFAULT NULL,
-  `location` varchar(180) DEFAULT NULL,
-  `deadline` date DEFAULT NULL,
-  `external_url` varchar(500) DEFAULT NULL,
-  `file_url` varchar(500) DEFAULT NULL,
-  `status` enum('draft','published') NOT NULL DEFAULT 'draft',
-  `published_at` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_advocacy_slug` (`slug`),
-  KEY `idx_advocacy_type_status` (`content_type`,`status`),
-  KEY `idx_advocacy_deadline` (`deadline`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `faqs` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `question` varchar(500) NOT NULL,
-  `answer` longtext NOT NULL,
-  `category` varchar(120) DEFAULT NULL,
-  `sort_order` int NOT NULL DEFAULT 0,
-  `status` enum('draft','published') NOT NULL DEFAULT 'published',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_faq_status_order` (`status`,`sort_order`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `newsletter_subscribers` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `email` varchar(190) NOT NULL,
-  `name` varchar(150) DEFAULT NULL,
-  `status` enum('active','unsubscribed') NOT NULL DEFAULT 'active',
-  `subscribed_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_newsletter_email` (`email`),
-  KEY `idx_newsletter_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `page_views` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `path` varchar(255) NOT NULL,
-  `viewed_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_page_views_path` (`path`),
-  KEY `idx_page_views_date` (`viewed_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
