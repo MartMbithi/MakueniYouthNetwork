@@ -1,0 +1,21 @@
+{% extends 'layouts/base.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block meta_description %}{{ intro }}{% endblock %}
+{% block content %}
+<section class="page-hero compact"><div class="wrap"><span class="eyebrow">Makueni Youth Network</span><h1>{{ title }}</h1><p>{{ intro }}</p></div></section>
+<section class="section"><div class="wrap">
+  <div class="advocacy-grid">
+  {% for item in items %}
+    <article class="advocacy-card">
+      <div class="advocacy-card-top"><span class="chip">{{ item.category|default(section|title) }}</span>{% if item.deadline %}<span class="deadline">Deadline: {{ item.deadline|date('M j, Y') }}</span>{% endif %}</div>
+      <h2><a href="/{{ section }}/{{ item.slug }}">{{ item.title }}</a></h2>
+      {% if item.organization %}<p class="meta-line">{{ item.organization }}{% if item.location %} · {{ item.location }}{% endif %}</p>{% endif %}
+      <p>{{ item.summary|default('') }}</p>
+      <a class="text-link" href="/{{ section }}/{{ item.slug }}">View details →</a>
+    </article>
+  {% else %}
+    <div class="empty-state"><h2>No published items yet</h2><p>New information will appear here once it is published.</p></div>
+  {% endfor %}
+  </div>
+</div></section>
+{% endblock %}

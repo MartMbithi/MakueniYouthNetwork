@@ -55,3 +55,43 @@
     });
   }, 5000);
 })();
+
+// Advocacy navigation and accessibility controls.
+document.addEventListener('DOMContentLoaded', function () {
+  var dropdowns = Array.prototype.slice.call(document.querySelectorAll('.menu-dropdown'));
+  document.querySelectorAll('.menu-dropdown-toggle').forEach(function (toggle) {
+    toggle.addEventListener('click', function (event) {
+      event.stopPropagation();
+      var item = toggle.closest('.menu-dropdown');
+      dropdowns.forEach(function (other) {
+        if (other !== item) {
+          other.classList.remove('open');
+          var otherToggle = other.querySelector('.menu-dropdown-toggle');
+          if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+      var open = item.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+  document.addEventListener('click', function (event) {
+    dropdowns.forEach(function (item) {
+      if (!item.contains(event.target)) {
+        item.classList.remove('open');
+        var toggle = item.querySelector('.menu-dropdown-toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      dropdowns.forEach(function (item) {
+        item.classList.remove('open');
+        var toggle = item.querySelector('.menu-dropdown-toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
+
+});
+

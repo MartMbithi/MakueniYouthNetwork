@@ -156,5 +156,19 @@ $router->post('/contact',          'ContactController@submit');
 
 $router->get('/sitemap.xml',       'SitemapController@index');
 
+
+// Advocacy platform phase 1
+$router->get('/campaigns',                 'AdvocacyController@campaigns');
+$router->get('/campaigns/{slug}',          'AdvocacyController@campaignShow');
+$router->get('/opportunities',             'AdvocacyController@opportunities');
+$router->get('/opportunities/{slug}',      'AdvocacyController@opportunityShow');
+$router->get('/resources',                 'AdvocacyController@resources');
+$router->get('/resources/{slug}',          'AdvocacyController@resourceShow');
+$router->get('/media',                     'AdvocacyController@media');
+$router->get('/media/{slug}',              'AdvocacyController@mediaShow');
+$router->get('/faq',                       'FaqController@index');
+$router->get('/search',                    'SearchController@index');
+$router->post('/newsletter/subscribe',     'NewsletterController@subscribe');
+
 // IMPORTANT: must be registered LAST so explicit routes win.
 $router->get('/{slug}',            'PageController@show');

@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+namespace App\Controllers\Admin;
+use App\Core\Database;use App\Core\View;use App\Models\PageView;
+final class AnalyticsController {public function index():string{$pdo=Database::connection();$counts=['page_views'=>(int)$pdo->query('SELECT COUNT(*) FROM page_views')->fetchColumn(),'subscribers'=>(int)$pdo->query("SELECT COUNT(*) FROM newsletter_subscribers WHERE status='active'")->fetchColumn(),'campaigns'=>(int)$pdo->query("SELECT COUNT(*) FROM advocacy_content WHERE content_type='campaign' AND status='published'")->fetchColumn(),'opportunities'=>(int)$pdo->query("SELECT COUNT(*) FROM advocacy_content WHERE content_type='opportunity' AND status='published'")->fetchColumn(),'resources'=>(int)$pdo->query("SELECT COUNT(*) FROM advocacy_content WHERE content_type='resource' AND status='published'")->fetchColumn(),'media'=>(int)$pdo->query("SELECT COUNT(*) FROM advocacy_content WHERE content_type='media' AND status='published'")->fetchColumn()];return View::render('admin/analytics/index.twig',['counts'=>$counts,'top_pages'=>PageView::top(15)]);}}

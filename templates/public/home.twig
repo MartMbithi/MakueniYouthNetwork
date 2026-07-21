@@ -97,53 +97,62 @@
       <h2>A youth-led movement confronting systemic barriers.</h2>
       <p>Makueni Youth Network CBO was founded in 2014 to build a movement of young people committed to driving positive change across social, educational, political and economic spaces.</p>
       <p>We believe young people are transformative leaders. Our mission is to mobilize, collaborate, empower and transform youth to actively engage in decision-making — increasing representation and grassroots civic action.</p>
-      <div class="vm-grid">
-        <div class="vm">
-          <div class="vm-circle mission">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v5c0 5 4 9.3 9 10 5-.7 9-5 9-10V7L12 2z"/><path d="M12 6v6l3 3"/></svg>
-          </div>
-          <h4>Our Mission</h4>
-          <p>To enhance the purpose, rights, and talents of young people by supporting them to become active citizens, problem solvers, and agents of change.</p>
-        </div>
-        <div class="vm">
-          <div class="vm-circle vision">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/></svg>
-          </div>
-          <h4>Our Vision</h4>
-          <p>A just community where young people enjoy dignified lives.</p>
-        </div>
-        <div class="vm">
-          <div class="vm-circle values">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </div>
-          <h4>Our Core Values</h4>
-          <ul class="values-list">
-            <li>Collaborate</li>
-            <li>Empower</li>
-            <li>Transform</li>
-          </ul>
-        </div>
-      </div>
     </div>
   </div>
 </section>
 
+<section class="pad" id="mission-vision-values">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">What Guides Us</span>
+      <h2>Our mission, vision and core values.</h2>
+    </div>
+    <div class="vm-grid">
+      <div class="vm reveal">
+        <div class="vm-circle mission">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L3 7v5c0 5 4 9.3 9 10 5-.7 9-5 9-10V7L12 2z"/><path d="M12 6v6l3 3"/></svg>
+        </div>
+        <h4>Our Mission</h4>
+        <p>To enhance the purpose, rights, and talents of young people by supporting them to become active citizens, problem solvers, and agents of change.</p>
+      </div>
+      <div class="vm reveal">
+        <div class="vm-circle vision">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/></svg>
+        </div>
+        <h4>Our Vision</h4>
+        <p>A just community where young people enjoy dignified lives.</p>
+      </div>
+      <div class="vm reveal">
+        <div class="vm-circle values">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <h4>Our Core Values</h4>
+        <ul class="values-list">
+          <li>Collaborate</li>
+          <li>Empower</li>
+          <li>Transform</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
 <section class="pad" id="news">
   <div class="wrap">
     <div class="sec-head reveal">
-      <span class="eyebrow">Our Impact</span>
-      <h2>News, stories &amp; the change we are making.</h2>
+      <span class="eyebrow">News &amp; Events</span>
+      <h2>Latest stories, updates &amp; youth-led change.</h2>
+      <p>Explore recent news and event highlights from Makueni Youth Network.</p>
     </div>
 
-    {# Posts come from HomeController via Post::published(3). The fallback
+    {# Posts come from HomeController via Post::published(4). The fallback
        is an empty list — the section just hides when there is no content. #}
     {% set _posts = posts|default([]) %}
 
-    <div class="news-grid">
+    <div class="news-grid-revamped">
       {% for post in _posts %}
         {% set _date = post.published_at|date('d') %}
         {% set _month = post.published_at|date('M') %}
-        <article class="news {{ loop.first ? 'feature' : '' }} reveal">
+        <article class="news reveal">
           <div class="news-img">
             <span class="news-date"><b>{{ _date }}</b><small>{{ _month }}</small></span>
             {% if post.cover_image %}
@@ -153,13 +162,18 @@
           <div class="news-body">
             <span class="news-cat">{{ post.category_name|default('News') }}</span>
             <h3>{{ post.title }}</h3>
-            {% if loop.first and post.excerpt %}
+            {% if post.excerpt %}
               <p>{{ post.excerpt }}</p>
             {% endif %}
             <a href="/impact/{{ post.slug }}" class="news-more">Read story →</a>
           </div>
         </article>
       {% endfor %}
+    </div>
+
+    <div class="news-actions reveal">
+      <a href="/impact" class="btn btn-ghost">View all news</a>
+      <a href="/events" class="btn btn-green">View events</a>
     </div>
   </div>
 </section>

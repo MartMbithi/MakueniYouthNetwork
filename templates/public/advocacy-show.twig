@@ -1,0 +1,19 @@
+{% extends 'layouts/base.twig' %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block meta_description %}{{ item.summary|default(item.title) }}{% endblock %}
+{% block content %}
+<section class="page-hero compact"><div class="wrap"><a class="back-link" href="/{{ section }}">← Back to {{ section|replace({'-':' '})|title }}</a><h1>{{ item.title }}</h1>{% if item.summary %}<p>{{ item.summary }}</p>{% endif %}</div></section>
+<section class="section"><div class="wrap content-narrow">
+  <div class="detail-meta">
+    {% if item.category %}<span><strong>Category:</strong> {{ item.category }}</span>{% endif %}
+    {% if item.organization %}<span><strong>Organisation:</strong> {{ item.organization }}</span>{% endif %}
+    {% if item.location %}<span><strong>Location:</strong> {{ item.location }}</span>{% endif %}
+    {% if item.deadline %}<span><strong>Deadline:</strong> {{ item.deadline|date('F j, Y') }}</span>{% endif %}
+  </div>
+  <div class="prose">{{ item.body|raw }}</div>
+  <div class="detail-actions">
+    {% if item.external_url %}<a class="btn btn-primary" href="{{ item.external_url }}" target="_blank" rel="noopener">Visit / Apply</a>{% endif %}
+    {% if item.file_url %}<a class="btn btn-ghost" href="{{ item.file_url }}" target="_blank" rel="noopener">Open resource</a>{% endif %}
+  </div>
+</div></section>
+{% endblock %}

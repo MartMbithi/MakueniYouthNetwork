@@ -1,0 +1,8 @@
+{% extends 'layouts/base.twig' %}{% block title %}Search{% endblock %}
+{% block content %}
+<section class="page-hero compact"><div class="wrap"><h1>Search Makueni Youth Network</h1><form class="site-search-large" action="/search" method="get"><input type="search" name="q" value="{{ query }}" placeholder="Search campaigns, opportunities, resources, media and programmes" aria-label="Search site"><button class="btn btn-primary" type="submit">Search</button></form></div></section>
+<section class="section"><div class="wrap content-narrow">
+{% if query %}<p class="search-count">{{ results|length }} result{{ results|length == 1 ? '' : 's' }} for “{{ query }}”</p>{% endif %}
+<div class="search-results">{% for r in results %}<article><span class="chip">{{ r.section|title }}</span><h2><a href="/{{ r.section }}/{{ r.slug }}">{{ r.title }}</a></h2><p>{{ r.summary|striptags|slice(0,220) }}{% if r.summary|length > 220 %}…{% endif %}</p></article>{% else %}{% if query %}<div class="empty-state"><h2>No matching results</h2><p>Try a different keyword or a broader search.</p></div>{% endif %}{% endfor %}</div>
+</div></section>
+{% endblock %}

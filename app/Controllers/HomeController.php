@@ -144,7 +144,7 @@ final class HomeController
     {
         return View::render('public/home.twig', [
             'programs' => Program::tree(),
-            'posts'    => Post::published(3),
+            'posts'    => Post::published(4),
             'stats'    => Stat::all(),
             'partners' => Partner::all(),
         ]);

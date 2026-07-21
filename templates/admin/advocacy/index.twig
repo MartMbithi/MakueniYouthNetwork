@@ -1,0 +1,6 @@
+{% extends 'layouts/admin.twig' %}{% import 'admin/_partials/_form_helpers.twig' as h %}
+{% block title %}{{ label }}{% endblock %}{% block actions %}<a href="{{ base_path }}/create" class="btn btn-primary"><i class="ri ri-add-line"></i> New {{ type }}</a>{% endblock %}
+{% block content %}<div class="admin-table-card"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Deadline</th><th class="text-end">Actions</th></tr></thead><tbody>
+{% for item in items %}<tr><td><a class="fw-semibold text-decoration-none" href="{{ base_path }}/{{ item.id }}/edit">{{ item.title }}</a></td><td>{{ item.category|default('—') }}</td><td>{{ h.status_pill(item.status) }}</td><td>{{ item.deadline ? item.deadline|date('M j, Y') : '—' }}</td><td class="text-end"><div class="row-actions justify-content-end"><a class="btn btn-sm btn-outline-primary" href="{{ base_path }}/{{ item.id }}/edit"><i class="ri ri-pencil-line"></i></a>{{ h.delete_button('/admin/' ~ type ~ 's/' ~ item.id ~ '/delete', {icon_only:true,title:'Delete this item?',text:'This item will be permanently removed.'}) }}</div></td></tr>
+{% else %}<tr><td colspan="5" class="text-center text-muted py-5">No {{ label|lower }} yet.</td></tr>{% endfor %}
+</tbody></table></div></div>{% endblock %}

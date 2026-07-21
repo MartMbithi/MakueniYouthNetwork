@@ -8,17 +8,42 @@
         <span>{{ site.name }}<small>Wote · Makueni County</small></span>
       {% endif %}
     </a>
+
     <ul class="menu" id="primary-menu">
-      <li><a href="/"         class="{{ current_path == '/'              ? 'is-active' }}">Home</a></li>
-      <li><a href="/programs" class="{{ current_path starts with '/programs' ? 'is-active' }}">Our Programs</a></li>
-      <li><a href="/about"    class="{{ current_path == '/about'           ? 'is-active' }}">Who We Are</a></li>
-      <li><a href="/impact"   class="{{ current_path starts with '/impact' ? 'is-active' }}">Our Impact</a></li>
-      <li><a href="/events"   class="{{ current_path starts with '/events' ? 'is-active' }}">Events</a></li>
-      <li><a href="/contact"  class="{{ current_path == '/contact'         ? 'is-active' }}">Contact</a></li>
-      <li class="menu-cta-mobile"><a href="/volunteer">Volunteer</a></li>
-      <li class="menu-cta-mobile"><a href="/donate">Donate ♥</a></li>
+      <li><a href="/" class="{{ current_path == '/' ? 'is-active' }}">Home</a></li>
+      <li><a href="/programs" class="{{ current_path starts with '/programs' ? 'is-active' }}">Programs</a></li>
+
+      <li class="menu-dropdown">
+        <button class="menu-dropdown-toggle {{ (current_path == '/about' or current_path starts with '/impact' or current_path starts with '/faq') ? 'is-active' }}" type="button" aria-expanded="false">
+          About <span class="dropdown-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="menu-dropdown-panel">
+          <a href="/about" class="{{ current_path == '/about' ? 'is-active' }}">Who We Are</a>
+          <a href="/impact" class="{{ current_path starts with '/impact' ? 'is-active' }}">Our Impact</a>
+          <a href="/faq" class="{{ current_path starts with '/faq' ? 'is-active' }}">Frequently Asked Questions</a>
+        </div>
+      </li>
+
+      <li class="menu-dropdown">
+        <button class="menu-dropdown-toggle {{ (current_path starts with '/campaigns' or current_path starts with '/opportunities' or current_path starts with '/resources' or current_path starts with '/media' or current_path starts with '/events') ? 'is-active' }}" type="button" aria-expanded="false">
+          Explore <span class="dropdown-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="menu-dropdown-panel menu-dropdown-panel-wide">
+          <a href="/campaigns">Advocacy Campaigns</a>
+          <a href="/opportunities">Youth Opportunities</a>
+          <a href="/resources">Resource Centre</a>
+          <a href="/media">Media Centre</a>
+          <a href="/events">Events</a>
+        </div>
+      </li>
+
+      <li><a href="/contact" class="{{ current_path == '/contact' ? 'is-active' }}">Contact</a></li>
+      <li class="menu-cta-mobile"></li>
+      <li class="menu-cta-mobile"></li>
     </ul>
+
     <div class="nav-cta">
+      <a href="/search" class="nav-search-link" aria-label="Search website" title="Search">⌕</a>
       <a href="/volunteer" class="btn btn-ghost">Volunteer</a>
       <a href="/donate" class="btn btn-amber">Donate ♥</a>
       <button class="burger" aria-label="Menu" aria-controls="primary-menu" aria-expanded="false">

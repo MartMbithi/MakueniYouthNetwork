@@ -1,26 +1,74 @@
 <footer class="site-footer" id="footer">
   <div class="wrap">
-    <div class="foot-top">
-      <a href="/" class="foot-brand">
-        {% if site.logo %}
-          <div class="brand-logo-light"><img src="{{ site.logo }}" alt="{{ site.name }}" width="160" height="44" loading="lazy"></div>
-        {% else %}
-          <div class="brand"><span class="mark">M</span><span>{{ site.name }}</span></div>
-        {% endif %}
-      </a>
-      <div class="socials">
-        <a href="{{ site.facebook|default('#') }}" aria-label="Facebook">f</a>
-        <a href="{{ site.twitter|default('#') }}" aria-label="X">X</a>
-        <a href="{{ site.linkedin|default('#') }}" aria-label="LinkedIn">in</a>
-        <a href="{{ site.instagram|default('#') }}" aria-label="Instagram">ig</a>
+    <div class="footer-grid">
+      <div class="footer-intro">
+        <a href="/" class="foot-brand">
+          {% if site.logo %}
+            <div class="brand-logo-light"><img src="{{ site.logo }}" alt="{{ site.name }}" width="160" height="44" loading="lazy"></div>
+          {% else %}
+            <div class="brand"><span class="mark">M</span><span>{{ site.name }}</span></div>
+          {% endif %}
+        </a>
+        <p>Empowering youth. Building connections. Creating opportunities for a better future.</p>
+        <strong class="footer-label">Follow Us</strong>
+        <div class="socials">
+          <a href="{{ site.facebook|default('#') }}" aria-label="Facebook">f</a>
+          <a href="{{ site.twitter|default('#') }}" aria-label="X">X</a>
+          <a href="{{ site.linkedin|default('#') }}" aria-label="LinkedIn">in</a>
+          <a href="{{ site.instagram|default('#') }}" aria-label="Instagram">ig</a>
+        </div>
+      </div>
+
+      <nav class="footer-column" aria-label="Quick links">
+        <h4>Quick Links</h4>
+        <a href="/about">About Us</a>
+        <a href="/programs">Our Programs</a>
+        <a href="/opportunities">Opportunities</a>
+        <a href="/resources">Resources</a>
+        <a href="/campaigns">Advocacy Campaigns</a>
+        <a href="/media">Media Centre</a>
+        <a href="/faq">FAQs</a>
+      </nav>
+
+      <nav class="footer-column" aria-label="Programs">
+        <h4>Programs</h4>
+        <a href="/programs">Youth Empowerment</a>
+        <a href="/programs">Civic Engagement</a>
+        <a href="/programs">Skills Development</a>
+        <a href="/programs">Mentorship</a>
+      </nav>
+
+      <nav class="footer-column" aria-label="Support">
+        <h4>Support</h4>
+        <a href="/contact">Get Involved</a>
+        <a href="/contact">Volunteer</a>
+        <a href="/contact">Partner With Us</a>
+        <a href="/donate">Donate</a>
+      </nav>
+
+      <div class="footer-column footer-newsletter">
+        <h4>Stay Updated</h4>
+        <p>Get advocacy updates and youth opportunities in your inbox.</p>
+        <form method="post" action="/newsletter/subscribe" class="newsletter-form">
+          {{ csrf_field()|raw }}
+          <label class="sr-only" for="newsletter-email">Email address</label>
+          <input id="newsletter-email" type="email" name="email" required placeholder="Email address">
+          <button type="submit">Subscribe</button>
+        </form>
+      </div>
+
+      <div class="footer-column footer-contact">
+        <h4>Contact Us</h4>
+        <a href="/contact#location"><span aria-hidden="true">●</span> Makueni County, Kenya</a>
+        {% if site.phone %}<a href="tel:{{ site.phone }}"><span aria-hidden="true">●</span> {{ site.phone }}</a>{% endif %}
+        {% if site.email %}<a href="mailto:{{ site.email }}"><span aria-hidden="true">●</span> {{ site.email }}</a>{% endif %}
+        <a href="/contact"><span aria-hidden="true">●</span> Contact form</a>
       </div>
     </div>
+
     <div class="foot-bottom">
-      <span>© {{ year }} {{ site.name }}. All rights reserved.</span>
+      <span>© {{ year }} {{ site.name }}. All rights reserved. |  Nested by Purretech Solutions</span>
       <nav class="foot-bottom-links">
-        <a href="/about">About Us</a>
-        <a href="/contact">Contact Us</a>
-        <a href="/contact#location">Visit Us</a>
         <a href="/privacy-policy">Privacy Policy</a>
         <a href="/terms">Terms &amp; Conditions</a>
       </nav>

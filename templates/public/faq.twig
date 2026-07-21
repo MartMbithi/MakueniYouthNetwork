@@ -1,0 +1,7 @@
+{% extends 'layouts/base.twig' %}{% block title %}Frequently Asked Questions{% endblock %}
+{% block content %}
+<section class="page-hero compact"><div class="wrap"><span class="eyebrow">Help & Information</span><h1>Frequently Asked Questions</h1><p>Answers to common questions about Makueni Youth Network, its programmes, opportunities and advocacy work.</p></div></section>
+<section class="section"><div class="wrap content-narrow"><div class="faq-list">
+{% for faq in faqs %}<details class="faq-item"><summary>{{ faq.question }}</summary><div class="faq-answer">{{ faq.answer|raw }}</div></details>{% else %}<p>No FAQs have been published yet.</p>{% endfor %}
+</div></div></section>
+{% endblock %}

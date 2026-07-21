@@ -1,0 +1,17 @@
+{% extends 'layouts/admin.twig' %}
+{% block title %}{{ item ? 'Edit' : 'New' }} {{ type|title }}{% endblock %}
+{% block content %}<form method="post" action="{{ action }}" class="admin-form-card">{{ csrf_field()|raw }}<div class="row g-3">
+<div class="col-md-8"><label class="form-label">Title</label><input required class="form-control" name="title" value="{{ item.title|default('') }}"></div>
+<div class="col-md-4"><label class="form-label">Status</label><select class="form-select" name="status"><option value="draft" {{ item.status|default('published') == 'draft' ? 'selected' }}>Draft</option><option value="published" {{ item.status|default('published') == 'published' ? 'selected' }}>Published</option></select></div>
+<div class="col-md-6"><label class="form-label">Slug (optional)</label><input class="form-control" name="slug" value="{{ item.slug|default('') }}"></div>
+<div class="col-md-6"><label class="form-label">Category</label><input class="form-control" name="category" value="{{ item.category|default('') }}" placeholder="e.g. Scholarship, Press Release, Governance"></div>
+<div class="col-12"><label class="form-label">Summary</label><textarea class="form-control" rows="3" name="summary">{{ item.summary|default('') }}</textarea></div>
+<div class="col-12"><label class="form-label">Full content</label><textarea class="form-control" rows="10" name="body">{{ item.body|default('') }}</textarea></div>
+<div class="col-md-4"><label class="form-label">Organisation / Source</label><input class="form-control" name="organization" value="{{ item.organization|default('') }}"></div>
+<div class="col-md-4"><label class="form-label">Location</label><input class="form-control" name="location" value="{{ item.location|default('') }}"></div>
+<div class="col-md-4"><label class="form-label">Deadline</label><input type="date" class="form-control" name="deadline" value="{{ item.deadline|default('') }}"></div>
+<div class="col-md-6"><label class="form-label">External / Apply URL</label><input type="url" class="form-control" name="external_url" value="{{ item.external_url|default('') }}"></div>
+<div class="col-md-6"><label class="form-label">File / Resource URL</label><input class="form-control" name="file_url" value="{{ item.file_url|default('') }}"></div>
+<div class="col-md-6"><label class="form-label">Publish date</label><input type="datetime-local" class="form-control" name="published_at" value="{{ item.published_at ? item.published_at|date('Y-m-d\\TH:i') : '' }}"></div>
+<div class="col-12"><button class="btn btn-primary" type="submit">Save {{ type }}</button> <a class="btn btn-outline-secondary" href="{{ base_path }}">Cancel</a></div>
+</div></form>{% endblock %}
